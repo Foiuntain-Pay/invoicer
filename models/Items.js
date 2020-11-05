@@ -24,7 +24,7 @@ module.exports = function(sequelize, Sequelize) {
         Amount: {
             type: Sequelize.INTEGER,
             allowNull: true,
-            field: 'field'
+            field: 'amount'
         },
         InvoiceId: {
             type: Sequelize.INTEGER,
