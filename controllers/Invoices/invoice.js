@@ -137,7 +137,7 @@ const createInvoice= async (req, res, next) => {
                 var lineItems = []
             
                 // looping each line item into an array
-                req.body.lineItems.forEach(item => {
+                req.body.invoice.lineItems.forEach(item => {
                     lineItems.push({
                         desc: item.desc,
                         qty: item.qty,
