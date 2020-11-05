@@ -64,9 +64,24 @@ exports.validate = (method) => {
     }
     case '/invoices/create': {
       return [ 
-          body('invoice.title').not().isEmpty().isString(),
-          body('invoice.description').exists().isString(),
-          body('invoice.category').custom(value => { return Array.isArray(value) }),
+          body('invoice.invoiceNumber').not().isEmpty().isString(),
+          body('invoice.billerCompanyName').exists().isString(),
+          body('invoice.billerCompanyAddress').exists().isString(),
+          body('invoice.billerCompanyLogo').exists().isString(),
+          body('invoice.billerBankName').exists().isString(),
+          body('invoice.billerAccountNumber').exists().isString(),
+          body('invoice.recipientCompanyName').exists().isString(),
+          body('invoice.recipientCompanyAddress').exists().isString(),
+          body('invoice.subTotal').custom(value => { return Number(value) }),
+          body('invoice.discount').custom(value => { return Number(value) }),
+          body('invoice.tax').custom(value => { return Number(value) }),
+          body('invoice.shipping').custom(value => { return Number(value) }),
+          body('invoice.amount').custom(value => { return Number(value) }),
+          body('invoice.amountPaid').custom(value => { return Number(value) }),
+          body('invoice.balance').custom(value => { return Number(value) }),
+          body('invoice.currency').exists().isString(),
+          body('invoice.dueAt').exists().isString(),
+          body('invoice.lineItems').custom(value => { return Array.isArray(value) }),
           body('invoice.status').exists().isIn(['draft', 'publish'])
         ]   
     }
