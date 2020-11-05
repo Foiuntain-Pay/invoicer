@@ -3,6 +3,7 @@ var DB = require('../DB/db')
 const { Op } = require('sequelize');
 const general = require('../General/general')
 const { validationResult } = require('express-validator');
+const { generateInvoicePDF } = require('../../helpers/generateInvoicePDF');
 
 /**
  * CREATE MULtiPLE POSTS
@@ -128,13 +129,26 @@ const createInvoice= async (req, res, next) => {
                 RoleName: res.locals.roleName,
                 DepartmentName: res.locals.departmentName
             }
-
+            
+            // var lineItems = [];
+            
+            //     // looping each line item into an array
+            // req.body.invoice.lineItems.forEach(item => {
+            //     lineItems.push({
+            //         Description: item.description,
+            //         Qty: item.qty,
+            //         Rate: item.rate,
+            //     });
+            // });
+            
+            const generatedInvoice = generateInvoicePDF(insert_data, req.body.invoice.lineItems); // called the function for creating invoice pdf by sending the invoice Id.
+            console.log('generated invocie:- ', generatedInvoice)
             let result = await DB.invoices.create(insert_data);
             result = result.dataValues
             
             if (result) {
                 // processing the line items for the invoice
-                var lineItems = []
+                var lineItems = [];
             
                 // looping each line item into an array
                 req.body.invoice.lineItems.forEach(item => {
@@ -146,13 +160,13 @@ const createInvoice= async (req, res, next) => {
                     });
                 });
                 
-                console.log('this is the object ' + lineItems);
+                console.log('Line Items ' + JSON.stringify(lineItems));
                 
                 const createdItems = DB.items.bulkCreate(lineItems) // bulk create lineItems
                 
-                // if (createdItems) {
-                //     createInvoice(result.id); // called the function for creating invoice pdf by sending the invoice Id.
-                // }
+                if (createdItems) {
+                    result.lineItems = createdItems;
+                }
                 
             }
             
