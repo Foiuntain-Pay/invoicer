@@ -4,6 +4,8 @@ const { Op } = require('sequelize');
 const general = require('../General/general')
 const { validationResult } = require('express-validator');
 const config = require('../../config');
+const aws = require('aws-sdk');
+const csv = require('fast-csv');
 const { generateInvoicePDF } = require('../../helpers/generateInvoicePDF');
 const { validateObject, validateData } = require('../../helpers/validate');
 
@@ -626,6 +628,42 @@ const  cloneInvoice = async (req, res, next) => {
     }
 }
 
+/**
+ * UPLOAD CSV FILE 
+ * @param {*} req 
+ * @param {*} res 
+ */
+
+const uploadCSV = async (req,res) => { 
+    try{
+        var s3 = new aws.S3();
+        var params = {Bucket: await general.getSetting(res, "BUCKETNAME"), Key: req.files[0].key};
+    
+        let invoices = [];
+        
+        s3.getObject(params).createReadStream()
+          .pipe(csv.parse({ headers: true }))
+          .on("error", (error) => {
+            throw error.message;
+          })
+          .on("data", async (row) => {
+            invoices.push(row);
+          })
+          .on("end", async () => {
+            req.body.invoices = invoices 
+             
+            // perform multiple create operation
+            createMultipleInvoices(req,res)  
+          });
+    }
+    catch(error){
+        return res.status(400).json({
+            status:false,
+            errormessage: error.message
+        })
+    }
+}
+
 module.exports = {uploadFile,deleteMultipleInvoices,deleteAllInvoices,deleteInvoice,
-    getInvoiceDetail,createMultipleInvoices,createInvoice,getInvoices,sendInvoiceViaEmail,cloneInvoice
+    getInvoiceDetail,createMultipleInvoices,createInvoice,getInvoices,sendInvoiceViaEmail,cloneInvoice,uploadCSV
 }

@@ -7,8 +7,8 @@ config.DBDIALECT = "postgres"
 config.DBPORT = 5432
 config.DBREGION = 'us-east-1'
 config.DBHOST = 'manifestdbinstance.cgq0reqixqsd.us-east-1.rds.amazonaws.com'
-config.PORT = process.env.PORT || 1337
-// config.PORT = 1337
+// config.PORT = process.env.PORT || 1337
+config.PORT = 1337
 config.USER_MODULE_API_URL = 'https://d5sqweaij8.execute-api.us-east-1.amazonaws.com/UserModuleStageDev2'
 config.JWTSECRET = 'P)$TB!)G'
 config.JWT_EXPIRY_TIME = '1h'
@@ -68,18 +68,18 @@ config.INVOICECREATIONTEMPLATE = "An Invoice has been created in your department
 config.ROUTES_EXCLUDED_FROM_AUTH = ["/test",'','/','/auth','/invoices/uploadFileToS3','/getDownloadUrl','/fetchSignature', '/login']
 
 // Response Messages
-config.VALIDATE_TYPE_OF_DATA_RESP_MSG = '{{RESOURCE}} {{DATA}} must be a {{TYPE}}!'
+config.VALIDATE_TYPE_OF_DATA_RESP_MSG = "{{RESOURCE}} '{{DATA}}' must be a {{TYPE}}!"
 config.OPERATION_SUCCESSFUL_RESP_MSG = 'Operation Successfull!'
 config.INVOICE_CREATE_SUCCESS_RESP_MSG = 'Invoice Created Successfully!'
 config.INVOICE_LISTED_SUCCESS_RESP_MSG = 'Invoice Listed Successfully!'
 config.NO_AVAILABLE_INVOICE_RESP_MSG = 'No Available Invoice!'
-config.INVOICE_NOT_FOUND_RESP_MSG = 'Invoice With ID "{{ID}}" not found!'
-config.INVOICE_DETAILS_LISTED_RESP_MSG = 'Invoice With ID "{{ID}}" Listed Successfully!'
-config.INVOICE_DELETED_RESP_MSG = 'Invoice With ID "{{ID}}" Deleted Successfully!'
+config.INVOICE_NOT_FOUND_RESP_MSG = "Invoice With ID '{{ID}}' not found!"
+config.INVOICE_DETAILS_LISTED_RESP_MSG = "Invoice With ID '{{ID}}' Listed Successfully!"
+config.INVOICE_DELETED_RESP_MSG = "Invoice With ID '{{ID}}' Deleted Successfully!"
 config.ALL_INVOICE_DELETED_RESP_MSG = 'All Invoices Deleted Successfully!'
 config.INPUT_VALIDATION_ERROR = 'Input Validation Error!'
-config.MAIL_SENT_RESP_MSG = 'Mail Successfully Sent to "{{RECIPIENTS}}".'
-config.INVOICE_CLONED_RESP_MSG = 'Invoice With ID "{{ID}}" Successfully Cloned!'
+config.MAIL_SENT_RESP_MSG = "Mail Successfully Sent to '{{RECIPIENTS}}'."
+config.INVOICE_CLONED_RESP_MSG = "Invoice With ID '{{ID}}' Successfully Cloned!"
 
 module.exports = config
 

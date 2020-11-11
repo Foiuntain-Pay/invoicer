@@ -24,7 +24,17 @@ aws.config.update({
 });
 const s3 = new aws.S3();
 
+const csvFilter = (req, file, cb) => {
+  if (file.mimetype.includes("csv") || file.mimetype.includes("excel") ||
+    file.mimetype.includes("spreadsheetml")) {
+    cb(null, true);
+  } else {
+    cb("Please upload only csv file.", false);
+  }
+};
+
 var upload = multer({
+    fileFilter: csvFilter,
     storage: multerS3({
       s3: s3,
       bucket: config.BUCKETNAME,
@@ -101,6 +111,11 @@ router.post('/invoices/clone',validator.validate('/invoices/clone'), permissions
 UPLOAD FILE TO S3
 *************************************************************************/
 router.post('/invoices/uploadFileToS3', upload.array('uploadedFiles',1), invoices.uploadFile)
+
+/*************************************************************************
+UPLOAD CSV FILE 
+*************************************************************************/
+router.post('/invoices/uploadCSV', upload.array('uploadedCSVfile',1), invoices.uploadCSV)
 
 /*************************************************************************
 GET S3 FILE DOWNLOAD URL
