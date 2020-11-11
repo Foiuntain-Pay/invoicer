@@ -3,11 +3,14 @@ var DB = require('../DB/db')
 const { Op } = require('sequelize');
 const general = require('../General/general')
 const { validationResult } = require('express-validator');
+const config = require('../../config');
 const { generateInvoicePDF } = require('../../helpers/generateInvoicePDF');
+const { validateObject, validateData } = require('../../helpers/validate');
+
 
 /**
- * CREATE MULtiPLE POSTS
- * @param {posts array containing post objects} req 
+ * CREATE MULtiPLE INVOICES
+ * @param {invoices array containing invoice objects} req 
  * @param {*} res 
  * @param {*} next 
  */
@@ -21,18 +24,34 @@ const createMultipleInvoices= async (req, res, next) => {
                 return res.status(400).json({ errors: errors.array() });
             }
 
-            // CREATE POSTS IN DATABASE
+            // CREATE INVOICES IN DATABASE
 
-            let posts = req.body.posts
+            let invoices = req.body.invoices
+            let errorArr = [];
+            let successArr = [];
 
-            for(let i=0;i<posts.length;i++){
+            for(let i=0;i<invoices.length;i++){
 
-                let post_data = posts[i]
-
+                let invoice_data = invoices[i]
                 let insert_data = {
-                    Title: post_data.title,
-                    Description: post_data.description,
-                    Status: post_data.status,
+                    InvoiceNumber: validateData(invoice_data.invoiceNumber, 'string', 'Invoice Number', errorArr, config, invoice_data),
+                    BillerCompanyName: validateData(invoice_data.billerCompanyName, 'string', 'Biller Company Name', errorArr, config, invoice_data),
+                    BillerCompanyAddress:  validateData(invoice_data.billerCompanyAddress, 'string', 'Biller Company Addres', errorArr, config, invoice_data),
+                    BillerCompanyLogo: validateData(invoice_data.billerCompanyLogo, 'string', 'Biller Company Logo', errorArr, config, invoice_data),
+                    BillerBankName: validateData(invoice_data.billerBankName, 'string', 'Biller Bank Name', errorArr, config, invoice_data),
+                    BillerAccountNumber: validateData(invoice_data.billerAccountNumber, 'string', 'Biller Account Number', errorArr, config, invoice_data),
+                    RecipientCompanyName: validateData(invoice_data.recipientCompanyName, 'string', 'Recipient Company Name', errorArr, config, invoice_data),
+                    RecipientCompanyAddress: validateData(invoice_data.recipientCompanyAddress, 'string', 'Recipient Company Address', errorArr, config, invoice_data),
+                    SubTotal: validateData(invoice_data.subTotal, 'number', 'Invoice Subtotal', errorArr, config, invoice_data),
+                    Discount: validateData(invoice_data.discount, 'number', 'Invoice Discount', errorArr, config, invoice_data),
+                    Tax: validateData(invoice_data.tax, 'number', 'Invoice Tax', errorArr, config, invoice_data),
+                    Shipping: validateData(invoice_data.shipping, 'number', 'Invoice Amount', errorArr, config, invoice_data),
+                    Amount: validateData(invoice_data.amount, 'number', 'Invoice Amount', errorArr, config, invoice_data),
+                    AmountPaid: validateData(invoice_data.amountPaid, 'number', 'Invoice Amount Paid', errorArr, config, invoice_data),
+                    Balance: validateData(invoice_data.balance, 'number', 'Invoice Balance', errorArr, config, invoice_data),
+                    Currency: validateData(invoice_data.currency, 'string', 'Invoice Currency', errorArr, config, invoice_data),
+                    DueAt: validateData(invoice_data.dueAt, 'string', 'Invoice Due Date', errorArr, config, invoice_data),
+                    Status: validateData(invoice_data.status, 'string', 'Invoice Status', errorArr, config, invoice_data),
                     BusinessId: res.locals.businessId,
                     Email: res.locals.userEmail,
                     UserID: res.locals.accountId,
@@ -41,52 +60,72 @@ const createMultipleInvoices= async (req, res, next) => {
                     RoleName: res.locals.roleName,
                     DepartmentName: res.locals.departmentName
                 }
-    
-                //we need to set published, if status is publish
-                if(post_data.status === 'publish'){
-                    insert_data.PublishedAt = new Date(Date.now()).toISOString();
-                }
-    
-                var result = await DB.posts.create(insert_data);
                 
-                result = result.dataValues
+                // processing the line items for the invoice
+                var lineItems = [];
 
-                //insert post categories
-                let cateogry_ids = post_data.category
+                // looping each line item into an array
+                invoice_data.lineItems.forEach(item => {
+                    var itemData = {
+                        Description: validateData(item.description, 'string', 'Item Description', errorArr, config, invoice_data),
+                        Qty: validateData(item.qty, 'number', 'Item Quantity', errorArr, config, invoice_data), 
+                        Rate: validateData(item.rate, 'number', 'Item Rate', errorArr, config, invoice_data)
+                    }
+                    // validates or checks if any data in the object is empty
+                    const validated = validateObject(itemData);
+                    if (validated) {
+                        lineItems.push(itemData);
+                    }
+                });
 
-                for(let i=0;i<cateogry_ids.length;i++){
-                    
-                    let insert_data = {
-                        postId:result.id,
-                        categoryId:Number(cateogry_ids[i])
+                // validates or checks if any data in the object is empty
+                const validated = validateObject(insert_data);
+
+                // checks if object is validated and the legnth of lineitems equals the length of inputed line items
+                if (validated && lineItems.length == invoice_data.lineItems.length) {
+                    var result = await DB.invoices.create(insert_data);
+                    result = result.dataValues
+
+                    if (result) {
+                        lineItems.forEach(element => { element.InvoiceId = result.id;}); // adds invoiceId values to each object in the lineitems array
+                        const createdItems = await DB.items.bulkCreate(lineItems) // bulk create lineItems
+                        
+                        if (createdItems) {
+                            result.lineItems = createdItems;
+                            await generateInvoicePDF(result); // called the function for creating invoice pdf by sending the invoice Id.
+                            successArr.push(result)
+                        }
+                        
                     }
 
-                    await DB.postcategories.create(insert_data);
-
+                    // SEND PUBLISHED INVOICE CREATION EMAIL TO MANAGER
+                    if(invoice_data.status === 'draft'){
+                        let sendEmailData = {subject:"New Invoice Created",client_base_url:req.headers.client_base_url,businessId: res.locals.businessId, departmentName: res.locals.departmentName}
+                        await general.prepareEmail(res,'INVOICECREATIONTEMPLATE',sendEmailData)
+                    }
                 }
-
-                // SEND PUBLISHED POST CREATION EMAIL TO MANAGER
-                if(post_data.status === 'publish'){
-                    let sendEmailData = {subject:"New Invoice Created",client_base_url:req.headers.client_base_url,businessId: res.locals.businessId, departmentName: res.locals.departmentName}
-                    await general.prepareEmail(res,'POSTCREATIONTEMPLATE',sendEmailData)
-                }
+                
 
             }
 
             // RETURN RESPONSE
-            return res.status(200).send({post:result})
+            return res.status(200).json({
+                status: true,
+                invoice:{success:successArr.length, successData:successArr, failure:errorArr.length, failureData:errorArr},
+                message: config.OPERATION_SUCCESSFUL_RESP_MSG
+            })
         }
         catch(error){
             console.log(error)
             // RETURN RESPONSE
-            return res.status(400).send(JSON.stringify({message: error.message}))
+            return res.status(400).json({status: false, message: error.message})
         }
 }
 
 
 /**
- * CREATE SINGLE POST
- * @param {post object} req 
+ * CREATE SINGLE INVOICE
+ * @param {invoice object} req 
  * @param {*} res 
  * @param {*} next 
  */
@@ -100,7 +139,7 @@ const createInvoice= async (req, res, next) => {
                 return res.status(400).json({ errors: errors.array() });
             }
 
-            // CREATE POST IN DATABASE
+            // CREATE INVOICE IN DATABASE
 
             let insert_data = {
                 InvoiceNumber: req.body.invoice.invoiceNumber,
@@ -129,69 +168,73 @@ const createInvoice= async (req, res, next) => {
                 RoleName: res.locals.roleName,
                 DepartmentName: res.locals.departmentName
             }
-            
-            // var lineItems = [];
-            
-            //     // looping each line item into an array
-            // req.body.invoice.lineItems.forEach(item => {
-            //     lineItems.push({
-            //         Description: item.description,
-            //         Qty: item.qty,
-            //         Rate: item.rate,
-            //     });
-            // });
-            
-            const generatedInvoice = generateInvoicePDF(insert_data, req.body.invoice.lineItems); // called the function for creating invoice pdf by sending the invoice Id.
-            console.log('generated invocie:- ', generatedInvoice)
-            let result = await DB.invoices.create(insert_data);
-            result = result.dataValues
-            
-            if (result) {
-                // processing the line items for the invoice
-                var lineItems = [];
-            
-                // looping each line item into an array
-                req.body.invoice.lineItems.forEach(item => {
-                    lineItems.push({
-                        Description: item.description,
-                        Qty: item.qty,
-                        Rate: item.rate,
-                        InvoiceId: result.id
-                    });
-                });
-                
-                console.log('Line Items ' + JSON.stringify(lineItems));
-                
-                const createdItems = DB.items.bulkCreate(lineItems) // bulk create lineItems
-                
-                if (createdItems) {
-                    result.lineItems = createdItems;
-                }
-                
-            }
-            
-            // SEND PUBLISHED POST CREATION EMAIL TO MANAGER
-            if(req.body.invoice.status === 'draft'){
-                let sendEmailData = {subject:"New Invoice Created",client_base_url:req.headers.client_base_url,businessId: res.locals.businessId, departmentName: res.locals.departmentName}
-                await general.prepareEmail(res,'POSTCREATIONTEMPLATE',sendEmailData)
-            }
 
-            // RETURN RESPONSE
-            return res.status(200).json({
-                status: true,
-                data: result,
-                message: 'Invoice Created'
-            })
+            // processing the line items for the invoice
+            var lineItems = [];
+            var errorArr = [];
+
+            // looping each line item into an array
+            req.body.invoice.lineItems.forEach(item => {
+                var itemData = {
+                    Description: validateData(item.description, 'string', 'Item Description', errorArr, config, item),
+                    Qty: validateData(item.qty, 'number', 'Item Quantity', errorArr, config, item), 
+                    Rate: validateData(item.rate, 'number', 'Item Rate', errorArr, config, item)
+                }
+                // validates or checks if any data in the object is empty
+                const validated = validateObject(itemData);
+                if (validated) {
+                    lineItems.push(itemData);
+                }
+            });
+            // checks if object is validated and the legnth of lineitems equals the length of inputed line items
+            if (lineItems.length == req.body.invoice.lineItems.length) {
+                let result = await DB.invoices.create(insert_data);
+                result = result.dataValues
+
+                if (result) {
+                    lineItems.forEach(element => { element.InvoiceId = result.id;}); // adds invoiceId values to each object in the lineitems array
+                    const createdItems = await DB.items.bulkCreate(lineItems) // bulk create lineItems
+                    
+                    if (createdItems) {
+                        result.lineItems = createdItems;
+                        await generateInvoicePDF(result); // called the function for creating invoice pdf by sending the invoice Id.
+                    }
+
+                    // SEND PUBLISHED INVOICE CREATION EMAIL TO MANAGER
+                    if(req.body.invoice.status === 'draft'){
+                        let sendEmailData = {subject:"New Invoice Created",client_base_url:req.headers.client_base_url,businessId: res.locals.businessId, departmentName: res.locals.departmentName}
+                        await general.prepareEmail(res,'INVOICECREATIONTEMPLATE',sendEmailData)
+                    }
+
+                    // RETURN RESPONSE
+                    return res.status(200).json({
+                        status: true,
+                        data: result,
+                        message: config.INVOICE_CREATE_SUCCESS_RESP_MSG
+                    })
+                    
+                }
+            } else {
+                return res.status(400).json({
+                    status: false,
+                    error: errorArr,
+                    message: config.INPUT_VALIDATION_ERROR
+                })
+            }
+            
+            
+
+            
         }
         catch(error){
             console.log(error)
             // RETURN RESPONSE
-            return res.status(400).json({message: error.message})
+            return res.status(400).json({status: false, message: error.message})
         }
 }
 
 /**
- * GET POSTS FROM DATABASE, CALLED FROM POSTS LISTING PAGE
+ * GET INVOICES FROM DATABASE, CALLED FROM INVOICES LISTING PAGE
  * @param {*} req 
  * @param {*} res 
  * @param {*} next 
@@ -200,7 +243,7 @@ const createInvoice= async (req, res, next) => {
 const getInvoices = async (req, res, next) => {
 
     try{
-        // GET ALL POST FROM DATABASE
+        // GET ALL INVOICE FROM DATABASE
 
         const errors = validationResult(req);
         
@@ -208,117 +251,53 @@ const getInvoices = async (req, res, next) => {
             return res.status(400).json({ errors: errors.array() });
         }
 
-        let status = "all"
-        if(req.body.hasOwnProperty('status') && req.body.status!=""){
-            status = req.body.status
-        }
-
-        let category = "all"
-        if(req.body.hasOwnProperty('category') && req.body.category!=""){
-            category = req.body.category
-        }
-
-        let where = {
-            BusinessId: res.locals.businessId,
-            RoleLevel:{
-                [Op.gte]: res.locals.roleLevel
-            }
-        }
-
-        if(status!=="" && status!=="all"){
-            where.Status = status
-        }
-
-        let include = []
-
-        let include_postcategories = {
-            model:DB.postcategories
-        }
-
-        if(category!=="" && category!=="all"){
-            include_postcategories.where = {
-                categoryId:parseInt(category)
-            }
-        }
-
-        include.push(include_postcategories)
-
-        include.push({
-            model:DB.media
+        let invoice = await DB.invoices.findAll({
+            where:{BusinessId: res.locals.businessId},
         })
 
-        let post = await DB.posts.findAll({
-            where:where,
-            include:include
-        })
-
-        let categories = await DB.categories.findAll({
-            where:{
-                Status:'active'
-            }
-        });
-
-        let posts = []
-        // IF NO POSTS IN DATABASE
-        if(post.length === 0){
-            return res.status(200).send(JSON.stringify({categories,entities:[]}))
+        let invoices = []
+        // IF NO INVOICES IN DATABASE
+        if(invoice.length === 0){
+            return res.status(200).json({
+                status: true,
+                data:[],
+                message: config.NO_AVAILABLE_INVOICE_RESP_MSG
+            })
         }
         else{
-            // LOOP OVER ALL POST
-            for(let i=0;i<post.length;i++) {
+            // LOOP OVER ALL INVOICE
+            for(let i=0;i<invoice.length;i++) {
+                // gets the lineitems and pdf for the invoice
+                let lineItems = await DB.items.findAll({where:{InvoiceId:invoice[i].id}})
+                let invoicePDF = await DB.invoicePdfs.findOne({where:{InvoiceId:invoice[i].id}})
+                
+                // adds the values for lineitems and invoice to the invoice[i] datavalue
+                invoice[i].dataValues.lineItems = lineItems
+                invoice[i].dataValues.invoicePDF = invoicePDF
 
-                let postcategories = post[i].get('postcategories')
-
-                let categories = []
-
-                //if this post has categories
-                if(postcategories.length){
-                    for(let j=0;j<postcategories.length;j++){
-                        let category_id = postcategories[j].dataValues.categoryId
-
-                        //get this category name
-
-                        let category_data = await DB.categories.findOne({
-                            where:{
-                                id:category_id
-                            }
-                        })
-
-                        if(category_data){
-                            categories.push(category_data.get('Name'))
-                        }
-
-                    }
-                }
-
-                let push_data = {
-                    id: post[i].get('id'),
-                    media:post[i].get('media'),
-                    description: post[i].get('Description'),
-                    title: post[i].get('Title'),
-                    categories:categories,
-                    PublishedAt: post[i].get('PublishedAt'),
-                    UserName: post[i].get('UserName'),
-                    status: post[i].get('Status')
-                }
-
-                posts.push(push_data)
+                // pushes the data to the invoices array
+                invoices.push(invoice[i])
             }
 
             // RETURN SUCCESS RESPONSE
-            return res.status(200).send(JSON.stringify({categories,entities:posts, totalCount: post.length}))
+            return res.status(200).json({
+                status: true,
+                data:invoices, 
+                totalCount: invoice.length,
+                message: config.INVOICE_LISTED_SUCCESS_RESP_MSG
+            })
         }
     }
     catch(error){
         // RETURN ERRIR RESPONSE
         console.log(error.message)
-        return res.status(400).send(JSON.stringify({errormessage: error.message}))
+        return res.status(400).json({status: true, errormessage: error.message})
     }
 }
 
 /**
- * GET POST DETAIL FROM DATABASE
- * @param {postId} req 
+ * GET INVOICE DETAIL FROM DATABASE
+ * @param {invoiceId} req 
  * @param {*} res 
  */
 
@@ -330,314 +309,48 @@ const getInvoiceDetail = async(req,res) => {
             return res.status(400).json({ errors: errors.array() });
         }
 
-        // GET POST DATA FROM POST ID
-        let post = await DB.posts.findOne({
-            where:{
-                id: req.body.postId
-            },
-            include:[
-                {
-                    model:DB.postcategories
-                },
-                {
-                    model:DB.media
-                }
-            ]
+
+        let invoice = await DB.invoices.findOne({
+            where:{ id: req.body.invoiceId, BusinessId: res.locals.businessId },
+            include:{ model: DB.items }
         })
-        let postDetail = ''
-        // IF POST NOT FOUND
-        if(post === null){
-            return res.status(200).send()
-        }
-        else{
-            // GET POST DETAIL
-
-            //get all categories to show in the dropdown
-
-            let categories = await DB.categories.findAll({
-                where:{
-                    Status:'active'
-                }
-            })
-            
-            postDetail = {media:post.get('media'),categories:categories,id: post.get('id'),postcategories:post.get('postcategories'),description: post.get('Description'), title: post.get('Title'), status: post.get('Status')}
-            // RETURN SUCCESS RESPONSE
-            return res.status(200).send(postDetail)
-        }
-    }
-    catch(error){
-        // RETURN ERROR RESPONSE
-        return res.status(400).send(JSON.stringify({errormessage: error.message}))
-    }
-}
-
-/**
- * UPDATE MULTIPLE POSTS IN DATABASE
- * @param {array of post objects to update} req 
- * @param {*} res 
- */
-
-const updateMultipleInvoices = async (req,res) => { 
-    try{
-
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-            return res.status(400).json({ errors: errors.array() });
-        }
-
-        let posts = req.body.posts
-
-        for(let i=0;i<posts.length;i++){
-
-            let post_data = posts[i]
-
-            // UPDATE POST IN DATABASE
-
-            let update_data = {
-                Title: post_data.title,
-                Description: post_data.description,
-                Status: post_data.status,
-                BusinessId: res.locals.businessId,
-                UserID: res.locals.accountId,
-                RoleLevel: res.locals.roleLevel,
-                RoleName: res.locals.roleName,
-                DepartmentName: res.locals.departmentName
-            }
-
-            //we need to set publishedAt, if status is publish
-            //but we need to check whether this post is already published or it is being published now
-            //because we don't want the issue that the publishedAt is populated everytime the post is updated
-            if(post_data.status === 'publish'){
-
-                let post_data_temp = await DB.posts.findOne({
-                    where:{
-                        id:post_data.id
-                    }
-                })
-
-                if(post_data_temp.dataValues.Status!=="publish"){
-
-                    //so now we are sure that the status of this post was not publish before, so this post has publishedAt null
-                    //we need to populate it
-
-                    update_data.PublishedAt = new Date(Date.now()).toISOString();
-                }
-                
-            }
-            else{
-                update_data.PublishedAt = null
-            }
-
-            await DB.posts.update(update_data,
-            {
-                where: {
-                    id: post_data.id
-                }
-            })
-
-            //insert post media, if there is any
-
-            //first delete them
-            await DB.media.destroy({
-                where:{
-                    postId:post_data.id
-                }
-            })
-
-            let media = post_data.media
-            for(let media_i=0;media_i<media.length;media_i++){
-
-                await DB.media.create({InvoiceId:post_data.id,URL:media[media_i].URL,Type:media[media_i].Type})
-
-            }
-
-            //now let's update categories of the post
-
-            //first delete them
-            await DB.postcategories.destroy({
-                where:{
-                    postId:post_data.id
-                }
-            })
-
-            //now insert them one by one
-
-            let cateogry_ids = post_data.category
-
-            for(let i=0;i<cateogry_ids.length;i++){
-                
-                let insert_data = {
-                    postId:post_data.id,
-                    categoryId:Number(cateogry_ids[i])
-                }
-
-                await DB.postcategories.create(insert_data);
-
-            }
-
-            // // SEND PUBLISHED POST CREATION EMAIL
-            if(post_data.status === 'publish'){
-                // SEND EMAIL TO MANAGER
-                let sendEmailData = {subject:"Invoice Updated",client_base_url:req.headers.client_base_url,businessId: res.locals.businessId, departmentName: res.locals.departmentName}
-                await general.prepareEmail(res,'POSTCREATIONTEMPLATE',sendEmailData)
-
-                // SEND EMAIL TO CREATOR
-                sendEmailData = {subject:"Invoice Updated",client_base_url:req.headers.client_base_url,postId: post_data.id}
-                await general.prepareEmail(res,'POSTUPDATETEMPLATE',sendEmailData)
-            }
-
-        }
-
-        // RETURN SUCCESS RESPONSE
-        return res.status(200).send()
-    }
-    catch(error){
         
-        // RETURN ERROR RESPONSE
-        return res.status(400).send(JSON.stringify({errormessage: error.message}))
-    }
-}
 
-/**
- * UPDATE SINGLE POST IN DATABASE
- * @param {post object} req 
- * @param {*} res 
- */
-
-const updateInvoice = async (req,res) => {
-
-    try{
-        // UPDATE POST IN DATABASE
-
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-            return res.status(400).json({ errors: errors.array() });
-        }
-
-        let update_data = {
-            Title: req.body.post.title,
-            Description: req.body.post.description,
-            Status: req.body.post.status,
-            BusinessId: res.locals.businessId,
-            UserID: res.locals.accountId,
-            RoleLevel: res.locals.roleLevel,
-            RoleName: res.locals.roleName,
-            DepartmentName: res.locals.departmentName
-        }
-
-        //we need to set publishedAt, if status is publish
-        //but we need to check whether this post is already published or it is being published now
-        //because we don't want the issue that the publishedAt is populated everytime the post is updated
-        if(req.body.post.status === 'publish'){
-
-            let post_data_temp = await DB.posts.findOne({
-                where:{
-                    id:req.body.post.id
-                }
+        // IF INVOICE NOT FOUND
+        if(invoice === null){
+            // RETURN SUCCESS RESPONSE
+            return res.status(404).json({
+                status: false,
+                data: [],
+                message: config.INVOICE_NOT_FOUND_RESP_MSG.replace('{{ID}}', req.body.invoiceId)
             })
-
-            if(post_data_temp.dataValues.Status!=="publish"){
-
-                //so now we are sure that the status of this post was not publish before, so this post has publishedAt null
-                //we need to populate it
-
-                update_data.PublishedAt = new Date(Date.now()).toISOString();
-            }
-            
         }
         else{
-            update_data.PublishedAt = null
-        }
-
-
-        await DB.posts.update(update_data,
-        {
-            where: {
-                id: req.body.post.id
-        }})
-
-        //insert post media, if there is any
-
-        //first delete them
-        await DB.media.destroy({
-            where:{
-                postId:req.body.post.id
-            }
-        })
-
-        let media = req.body.post.media
-        for(let media_i=0;media_i<media.length;media_i++){
-
-            await DB.media.create({InvoiceId:req.body.post.id,URL:media[media_i].URL,Type:media[media_i].Type})
-
-        }
-
-        //now let's update categories of the post
-
-        //first delete them
-        await DB.postcategories.destroy({
-            where:{
-                postId:req.body.post.id
-            }
-        })
-
-        //now insert them one by one
-
-        let cateogry_ids = req.body.post.category
-
-        for(let i=0;i<cateogry_ids.length;i++){
             
-            let insert_data = {
-                postId:req.body.post.id,
-                categoryId:Number(cateogry_ids[i])
-            }
+                // gets the pdf for the invoice
+                let invoicePDF = await DB.invoicePdfs.findOne({where:{InvoiceId:invoice.id}})
+                
+                // adds the values for invoicePDF to the invoice[i] datavalue
+                invoice.dataValues.invoicePDF = invoicePDF
 
-            await DB.postcategories.create(insert_data);
-
+            // RETURN SUCCESS RESPONSE
+            return res.status(200).json({
+                status: true,
+                data: invoice,
+                message: config.INVOICE_DETAILS_LISTED_RESP_MSG.replace('{{ID}}', req.body.invoiceId)
+            })
         }
-
-        // // SEND PUBLISHED POST CREATION EMAIL
-        if(req.body.post.status === 'publish'){
-            // SEND EMAIL TO MANAGER
-            let sendEmailData = {subject:"Invoice Updated",client_base_url:req.headers.client_base_url,businessId: res.locals.businessId, departmentName: res.locals.departmentName}
-            await general.prepareEmail(res,'POSTCREATIONTEMPLATE',sendEmailData)
-
-            // SEND EMAIL TO CREATOR
-            sendEmailData = {subject:"Invoice Updated",client_base_url:req.headers.client_base_url,postId: req.body.post.id}
-            await general.prepareEmail(res,'POSTUPDATETEMPLATE',sendEmailData)
-        }
-
-        let categories = await DB.categories.findAll({
-            where:{
-                Status:'active'
-            }
-        });
-
-        let post_data = await DB.posts.findOne({
-            where:{
-                id:req.body.post.id
-            },
-            include:[
-                {
-                    model:DB.postcategories
-                }
-            ]
-        })
-
-        // RETURN SUCCESS RESPONSE
-        return res.status(200).send({categories:categories,postcategories:post_data.dataValues.postcategories})
     }
     catch(error){
-        console.log(error.message)
         // RETURN ERROR RESPONSE
-        return res.status(400).send(JSON.stringify({errormessage: error.message}))
+        return res.status(400).json({status: true, errormessage: error.message})
     }
 }
 
 
 /**
- * PHYSICALLY DELETE SINGLE POST FROM DATABASE
- * @param {postId} req 
+ * PHYSICALLY DELETE SINGLE INVOICE FROM DATABASE
+ * @param {invoiceId} req 
  * @param {*} res 
  */
 
@@ -649,33 +362,43 @@ const deleteInvoice = async (req,res) => {
             return res.status(400).json({ errors: errors.array() });
         }
         
-        let {postId} = req.body
-        //DELETE POST IN DATABASE
-        await DB.posts.destroy({
+        let {invoiceId} = req.body
+        //DELETE INVOICE IN DATABASE
+
+        const checkInvoice = await DB.invoices.findOne({
             where: {
-                id: postId
-            },
-            force: true
-        });
-
-        let categories = await DB.categories.findAll({
-            where:{
-                Status:'active'
+                id: invoiceId,
+                BusinessId: res.locals.businessId
             }
-        });
-
-        // RETURN SUCCESS RESPONSE
-        return res.status(200).send({categories})
+        })
+        
+        // if invoice exists in the database
+        if (checkInvoice) {
+            //DELETE INVOICE IN DATABASE
+            await checkInvoice.destroy({ force: true });
+    
+            // RETURN SUCCESS RESPONSE
+            return res.status(200).json({
+                status: true,
+                message: config.INVOICE_DELETED_RESP_MSG.replace('{{ID}}', invoiceId)
+            })   
+        } else {
+            // else return error message
+            return res.status(404).json({
+                status: false, 
+                message: config.INVOICE_NOT_FOUND_RESP_MSG.replace('{{ID}}', invoiceId)
+            })
+        }
     }
     catch(error){
         console.log(error.message)
         // RETURN ERROR RESPONSE
-        return res.status(400).send(JSON.stringify({errormessage: error.message}))
+        return res.status(400).json({status: true, errormessage: error.message})
     }
 }
 
 /**
- * PHYSICALLY DELETE ALL POSTS FROM DATABASE
+ * PHYSICALLY DELETE ALL INVOICES FROM DATABASE
  * @param {*} req 
  * @param {*} res 
  */
@@ -683,25 +406,28 @@ const deleteInvoice = async (req,res) => {
 const deleteAllInvoices = async (req,res) => { 
     try{
         
-        //Delete all posts in the database
+        //Delete all invoices in the database
 
-        DB.posts.destroy({
+        DB.invoices.destroy({
             force: true,
-            where: {}
+            where: {BusinessId: res.locals.businessId}
         })
 
         // RETURN SUCCESS RESPONSE
-        return res.status(200).send()
+        return res.status(200).json({
+            status:true,
+            message: config.ALL_INVOICE_DELETED_RESP_MSG
+        })
     }
     catch(error){
         console.log(error.message)
         // RETURN ERROR RESPONSE
-        return res.status(400).send(JSON.stringify({errormessage: error.message}))
+        return res.status(400).json({status: true, errormessage: error.message})
     }
 }
 
 /**
- * PHYSICALLY DELETE MULTIPLE POSTS FROM DATABASE
+ * PHYSICALLY DELETE MULTIPLE INVOICES FROM DATABASE
  * @param {ids} req 
  * @param {*} res 
  */
@@ -715,21 +441,36 @@ const deleteMultipleInvoices = async (req,res) => {
         }
 
         let ids = req.body.ids
-        // LOOP OVER ALL POST TO UPDATE STATUS
+        let errorArr = [];
+        let successArr = [];
+        // LOOP OVER ALL INVOICE TO UPDATE STATUS
         for(let i=0;i<ids.length;i++){
-            // UPDATE POST IN DATABASE
-            await DB.posts.destroy({
+            // UPDATE INVOICE IN DATABASE
+            const checkInvoice = await DB.invoices.findOne({
                 where: {
-                    id: ids[i]
-            }})
+                    id: ids[i],
+                    BusinessId: res.locals.businessId
+                }
+            })
+            if (checkInvoice) {
+                // UPDATE EXPENSE IN DATABASE
+                await checkInvoice.destroy()
+                successArr.push({"successMsg":config.INVOICE_DELETED_RESP_MSG.replace('{{ID}}',ids[i])})
+            } else {
+                errorArr.push({"errorMsg":config.INVOICE_NOT_FOUND_RESP_MSG.replace('{{ID}}',ids[i])})
+            }
         }
         // RETURN SUCCESS RESPONSE
-        return res.status(200).send()
+        return res.status(200).json({
+            status: true,
+            data: {success:successArr.length, successData:successArr, failure:errorArr.length, failureData:errorArr},
+            message: config.OPERATION_SUCCESSFUL_RESP_MSG
+        })
     }
     catch(error){
         console.log(error.message)
         // RETURN ERROR RESPONSE
-        return res.status(400).send(JSON.stringify({errormessage: error.message}))
+        return res.status(400).json({status: true, errormessage: error.message})
     }
 }
 
@@ -748,7 +489,143 @@ const uploadFile = async (req,res) => {
     }
 }
 
+/**
+ * Send an Invoice via email
+ * @param {*} req 
+ * @param {*} res 
+ * @param {*} next 
+ */
+
+const  sendInvoiceViaEmail = async (req, res, next) => {
+    try{
+
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() });
+        }
+
+
+        // checks if the ID exists
+        var invoice = await DB.invoices.findOne({
+            where:{ id: req.body.invoiceId, BusinessId: res.locals.businessId },
+        })
+        if (!invoice) {
+            return res.status(400).json({
+                status: false,
+                message: config.INVOICE_NOT_FOUND_RESP_MSG.replace('{{ID}}', req.body.invoiceId)
+            });
+        } else {
+            let invoicePDF = await DB.invoicePdfs.findOne({where:{InvoiceId:invoice.id}})
+            invoice.dataValues.InvoicePDF = invoicePDF.get('File')
+            var mailOptions = {
+                from: invoice.get('Email'),
+                to: req.body.mailTo.join(', '),
+                subject: `${invoice.get('BillerCompanyName')} has just sent you an invoice via InvoiceApp`,
+                html: req.body.mailText,
+                attachments: [
+                    {   // use URL as an attachment
+                        filename: `invoice_#${invoice.get('InvoiceNumber')}.pdf`,
+                        path: `${invoice.get('InvoicePDF')}`
+                    },
+                ]
+            };
+
+            // send mail function
+            await general.sendEmail(res,mailOptions)
+
+            // RETURN RESPONSE
+            return res.status(200).json({
+                status: true,
+                message: config.MAIL_SENT_RESP_MSG.replace('{{RECIPIENTS}}', req.body.mailTo.join(', '))
+            })
+        }
+        
+    }
+    catch(error){
+        // RETURN RESPONSE
+        return res.status(400).json({
+            status: false,
+            message: error.message
+        })
+    }
+}
+
+/**
+ * Clone an Invoice via email
+ * @param {*} req 
+ * @param {*} res 
+ * @param {*} next 
+ */
+
+const  cloneInvoice = async (req, res, next) => {
+    try{
+
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() });
+        }
+        // checks if the ID exists
+        var invoice = await DB.invoices.findOne({
+            where:{ id: req.body.invoiceId, BusinessId: res.locals.businessId },
+            include:{ model: DB.items }
+        })
+        if (!invoice) {
+            return res.status(400).json({
+                status: false,
+                message: config.INVOICE_NOT_FOUND_RESP_MSG.replace('{{ID}}', req.body.invoiceId)
+            });
+        } else {
+            let invoicePDF = await DB.invoicePdfs.findOne({where:{InvoiceId:invoice.id}})
+            invoice.dataValues.InvoicePDF = invoicePDF.get('File')
+            var invoiceData = {
+                "invoiceNumber": invoice.get('InvoiceNumber'),
+                "billerCompanyName": invoice.get('BillerCompanyName'),
+                "billerCompanyAddress": invoice.get('BillerCompanyAddress'),
+                "billerCompanyLogo": invoice.get('BillerCompanyLogo'),
+                "billerBankName": invoice.get('BillerBankName'),
+                "billerAccountNumber":invoice.get('BillerAccountNumber'),
+                "recipientCompanyName": invoice.get('RecipientCompanyName'),
+                "recipientCompanyAddress": invoice.get('RecipientCompanyAddress'),
+                "lineItems": [],
+                "subTotal": invoice.get('SubTotal'),
+                "discount": invoice.get('Discount'),
+                "tax": invoice.get('Tax'),
+                "shipping": invoice.get('Shipping'),
+                "amount": invoice.get('Amount'),
+                "amountPaid": invoice.get('AmountPaid'),
+                "balance": invoice.get('Balance'),
+                "currency": invoice.get('Currency'),
+                "dueAt": invoice.get('DueAt'),
+                "status": invoice.get('Status')
+            };
+
+            invoice.dataValues.items.forEach(item => {
+                var itemData = {
+                    description: item.Description,
+                    qty: item.Qty, 
+                    rate: item.Rate
+                }
+                invoiceData.lineItems.push(itemData);
+            });
+
+            // RETURN RESPONSE
+            return res.status(200).json({
+                status: true,
+                data: invoiceData,
+                message: config.INVOICE_CLONED_RESP_MSG.replace('{{ID}}', req.body.invoiceId)
+            })
+        }
+        
+    }
+    catch(error){
+        // RETURN RESPONSE
+        return res.status(400).json({
+            status: false,
+            message: error.message
+        })
+    }
+}
+
 module.exports = {uploadFile,deleteMultipleInvoices,deleteAllInvoices,deleteInvoice,
-    updateInvoice,updateMultipleInvoices,
-    getInvoiceDetail,createMultipleInvoices,createInvoice,getInvoices
+    getInvoiceDetail,createMultipleInvoices,createInvoice,getInvoices,sendInvoiceViaEmail,cloneInvoice
 }

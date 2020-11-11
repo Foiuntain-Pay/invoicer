@@ -141,6 +141,7 @@ module.exports = function(sequelize, Sequelize) {
 
     Invoices.associate = function(models) {
         models.invoices.hasMany(models.items, {onDelete: 'cascade',targetKey: "id", foreignKey: 'invoiceId'});
+        models.invoices.hasMany(models.invoicePdfs, {onDelete: 'cascade',targetKey: "id", foreignKey: 'invoiceId'});
     };
 
     return Invoices;

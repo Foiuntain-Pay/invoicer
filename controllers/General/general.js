@@ -169,45 +169,21 @@ const prepareEmail = async (res,templateName, data) => {
 
         let result = []
         // GET EMAIL LSIT FROM DATABASE
-        if(data.hasOwnProperty('postId')){
+        if(data.hasOwnProperty('invoiceId')){
             mailOptions.subject = data.subject
-            result = await DB.posts.findAll({
+            result = await DB.invoices.findAll({
                 where:{
-                    id: data.postId
+                    id: data.invoiceId
                 }
             })
         }
-        else if(data.hasOwnProperty('postIds')){
+        else if(data.hasOwnProperty('invoiceIds')){
             html = html.replace('{{STATUS}}',data.status)
             mailOptions.html = html
             mailOptions.subject = data.subject
-            result = await DB.posts.findAll({
+            result = await DB.invoices.findAll({
                 where:{
-                    id: {[Op.in]:data.postIds}
-                }
-            })
-        }
-        else if(data.hasOwnProperty('commentIds')){
-            html = html.replace('{{STATUS}}',data.status)
-            mailOptions.html = html
-            mailOptions.subject = data.subject
-            result = await DB.comments.findAll({
-                where:{
-                    id: {[Op.in]:data.commentIds}
-                }
-            })
-        }
-        else{
-            if(templateName === 'COMMENTCREATIONTEMPLATE'){
-                mailOptions.subject = data.subject
-            }
-            else{
-                mailOptions.subject = data.subject
-            }
-            result = await DB.managerEmails.findAll({
-                where:{
-                    BusinessId: data.businessId,
-                    DepartmentName: data.departmentName
+                    id: {[Op.in]:data.invoiceIds}
                 }
             })
         }
@@ -218,23 +194,13 @@ const prepareEmail = async (res,templateName, data) => {
             if(result.length){
             for( let i = 0 ; i < result.length ; i++ ){
 
-                    if(data.hasOwnProperty('postIds')){
+                    if(data.hasOwnProperty('invoiceIds')){
                         //post status being changed
-                        html = html.replace('{{TITLE}}',result[i].get('Title'))
+                        html = html.replace('{{TITLE}}',result[i].get('InvoiceNumber'))
 
-                        let link = data.client_base_url+'/posts/'+result[i].dataValues.id+'/view'
-
-                        html = html.replace('{{LINK}}',link)
-                        mailOptions.html = html
-                    }
-                    else if(data.hasOwnProperty('commentIds')){
-                        //comment status being changed
-                        let link = data.client_base_url+'/posts/'+result[i].dataValues.PostId+'/view'
+                        let link = data.client_base_url+'/invoices/'+result[i].dataValues.id+'/view'
 
                         html = html.replace('{{LINK}}',link)
-
-                        html = html.replace('{{COMMENT}}',result[i].dataValues.Comment)
-
                         mailOptions.html = html
                     }
                     

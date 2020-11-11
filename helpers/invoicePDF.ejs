@@ -353,14 +353,14 @@
 						</tr>
 					</tbody>
 					<tbody class="body">
-						<% lineItems.forEach(function(item) { %>
+						<% invoiceData.lineItems.forEach(function(item) { %>
 							
 							<tr>
 								<td class="no"></td>
-								<td class="desc"><%= item.description %></td>
-								<td class="qty"><%= item.qty %></td>
-								<td class="unit"><%= currencySymbol %> <%= (item.rate || 0).toLocaleString('en-US', {style: 'decimal', minimumFractionDigits: 2 , maximumFractionDigits: 2}); %></td>
-								<% const amount = item.qty * item.rate %>
+								<td class="desc"><%= item.Description %></td>
+								<td class="qty"><%= item.Qty %></td>
+								<td class="unit"><%= currencySymbol %> <%= (item.Rate || 0).toLocaleString('en-US', {style: 'decimal', minimumFractionDigits: 2 , maximumFractionDigits: 2}); %></td>
+								<% const amount = item.Qty * item.Rate %>
 								<td class="total"><%= currencySymbol %> <%= (amount || 0).toLocaleString('en-US', {style: 'decimal', minimumFractionDigits: 2 , maximumFractionDigits: 2}); %></td>
 							</tr>
 						<% }); %>

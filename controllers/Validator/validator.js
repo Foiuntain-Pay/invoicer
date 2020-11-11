@@ -2,44 +2,18 @@ const { body } = require('express-validator')
 
 exports.validate = (method) => {
   switch (method) {
-    case '/categories/create': {
-      return [ 
-          body('categories').custom(value => { return Array.isArray(value) }),
-        ]   
-    }
+    // Media
     case '/media/delete': {
       return [ 
           body('mediaId').custom(value => { return Number(value) }),
         ]   
     }
-    case '/comments/deleteMultipleComments': {
-      return [ 
-          body('ids').custom(value => { return Array.isArray(value) }),
-      ]   
+    case '/media/deleteMultipleMedias': {
+      return [
+         body('ids').custom(value => { return Array.isArray(value) }),
+        ]   
     }
-    case '/comments/delete': {
-      return [ 
-          body('commentId').custom(value => { return Number(value) }),
-      ]   
-    }
-    case '/comments/getOne': {
-      return [ 
-          body('commentId').custom(value => { return Number(value) }),
-      ]   
-    }
-    case '/comments/create': {
-      return [ 
-          body('post.status').exists().isIn(['pending']),
-          body('post.comment').exists().not().isEmpty(),
-          body('post.postId').custom(value => { return Number(value) }),
-      ]   
-    }
-    case '/comments/update': {
-      return [ 
-          body('comment').exists().not().isEmpty(),
-          body('id').custom(value => { return Number(value) }),
-      ]   
-    }
+    // Invoice
     case '/invoices/getDetail': {
       return [ 
           body('invoiceId').custom(value => { return Number(value) }),
@@ -51,12 +25,6 @@ exports.validate = (method) => {
           body('category').optional().isString(),
         ]   
     }
-    case '/invoices/updateStatus': {
-      return [ 
-          body('invoiceId').custom(value => { return Number(value) }),
-          body('status').not().isEmpty(),
-        ]   
-    }
     case '/invoices/delete': {
       return [ 
           body('invoiceId').custom(value => { return Number(value) }),
@@ -64,42 +32,28 @@ exports.validate = (method) => {
     }
     case '/invoices/create': {
       return [ 
-          body('invoice.invoiceNumber').not().isEmpty().isString(),
-          body('invoice.billerCompanyName').exists().isString(),
-          body('invoice.billerCompanyAddress').exists().isString(),
-          body('invoice.billerCompanyLogo').exists().isString(),
-          body('invoice.billerBankName').exists().isString(),
-          body('invoice.billerAccountNumber').exists().isString(),
-          body('invoice.recipientCompanyName').exists().isString(),
-          body('invoice.recipientCompanyAddress').exists().isString(),
-          body('invoice.subTotal').custom(value => { return Number(value) }),
-          body('invoice.discount').custom(value => { return Number(value) }),
-          body('invoice.tax').custom(value => { return Number(value) }),
-          body('invoice.shipping').custom(value => { return Number(value) }),
-          body('invoice.amount').custom(value => { return Number(value) }),
-          body('invoice.amountPaid').custom(value => { return Number(value) }),
-          body('invoice.balance').custom(value => { return Number(value) }),
-          body('invoice.currency').exists().isString(),
-          body('invoice.dueAt').exists().isString(),
+          body('invoice.invoiceNumber').not().isEmpty().isString().withMessage('Invoice Number must be a string'),
+          body('invoice.billerCompanyName').exists().isString().withMessage('Biller Company Name must be a string'),
+          body('invoice.billerCompanyAddress').exists().isString().withMessage('Biller Company Address must be a string'),
+          body('invoice.billerCompanyLogo').exists().isString().withMessage('Biller Company Logo must be a string'),
+          body('invoice.billerBankName').exists().isString().withMessage('Biller Bank Name must be a string'),
+          body('invoice.billerAccountNumber').exists().isString().withMessage('Biller Account Number must be a string'),
+          body('invoice.recipientCompanyName').exists().isString().withMessage('Recipient Company Name must be a string'),
+          body('invoice.recipientCompanyAddress').exists().isString().withMessage('Recipient Company Address must be a string'),
+          body('invoice.subTotal').custom(value => { return Number(value) }).withMessage('Subtotal must be an integer'),
+          body('invoice.discount').custom(value => { return Number(value) }).withMessage('Discount must be an integer'),
+          body('invoice.tax').custom(value => { return Number(value) }).withMessage('Tax must be an integer'),
+          body('invoice.shipping').custom(value => { return Number(value) }).withMessage('Shipping must be an integer'),
+          body('invoice.amount').custom(value => { return Number(value) }).withMessage('Amount must be an integer'),
+          body('invoice.amountPaid').custom(value => { return Number(value) }).withMessage('Amount Paid must be an integer'),
+          body('invoice.balance').custom(value => { return Number(value) }).withMessage('Balance must be an integer'),
+          body('invoice.currency').exists().isString().withMessage('Currency must be a string'),
+          body('invoice.dueAt').exists().isString().withMessage('Due Date must be a string'),
           body('invoice.lineItems').custom(value => { return Array.isArray(value) }),
-          body('invoice.status').exists().isIn(['draft', 'publish'])
-        ]   
-    }
-    case '/invoices/update': {
-      return [ 
-          body('invoice.id').custom(value => { return Number(value) }),
-          body('invoice.title').not().isEmpty().isString(),
-          body('invoice.description').exists().isString(),
-          body('invoice.category').custom(value => { return Array.isArray(value) }),
-          body('invoice.status').exists().isIn(['draft', 'publish','reject','verify'])
+          body('invoice.status').exists().isIn(['draft', 'publish']).withMessage('status must only include draft or publish')
         ]   
     }
     case '/invoices/createMultiple': {
-      return [
-         body('invoices').custom(value => { return Array.isArray(value) }),
-        ]   
-    }
-    case '/invoices/updateMultiple': {
       return [
          body('invoices').custom(value => { return Array.isArray(value) }),
         ]   
@@ -109,37 +63,20 @@ exports.validate = (method) => {
          body('ids').custom(value => { return Array.isArray(value) }),
         ]   
     }
-    case '/invoices/updateMultipleStatuses': {
-      return [
-         body('ids').custom(value => { return Array.isArray(value) }),
-        ]   
-    }
-    case '/media/deleteMultipleMedias': {
-      return [
-         body('ids').custom(value => { return Array.isArray(value) }),
-        ]   
-    }
-    case '/comments/createMultiple': {
-      return [
-         body('comments').custom(value => { return Array.isArray(value) }),
-        ]   
-    }
-    case '/comments/updateMultiple': {
-      return [
-         body('comments').custom(value => { return Array.isArray(value) }),
-        ]   
-    }
-    case '/comments/get': {
+    
+    case '/invoices/sendViaEmail': {
       return [ 
-          body('status').optional().isString(),
-      ]   
-    }
-    case '/comments/udpateCommentStatus': {
-      return [
-          body('commentId').custom(value => { return Number(value) }),
-          body('status').not().isEmpty(),
+          body('invoiceId').custom(value => { return Number(value) }).withMessage('Invoice ID must be an integer'),
+          body('mailTo').custom(value => { return Array.isArray(value) }).withMessage('Mail recipient should be in an array'),
+          body('mailText').exists().isString().withMessage('Mail Text must be a string'),
         ]   
     }
+    case '/invoices/clone': {
+      return [ 
+          body('invoiceId').custom(value => { return Number(value) }).withMessage('Invoice ID must be an integer'),
+        ]   
+    }
+    // Test
     case '/test': {
      return [
         body('invoices').custom(value => { return Array.isArray(value) }),

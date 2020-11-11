@@ -62,7 +62,6 @@ CREATE MULTIPLE POSTS API (CreateMultiplePosts)
 *************************************************************************/
 router.post('/invoices/createMultiple',validator.validate('/invoices/createMultiple'), permissions.hasCreatePermission, invoices.createMultipleInvoices)
 
-
 /*************************************************************************
 GET POSTS API (ListAllPosts)
 *************************************************************************/
@@ -72,29 +71,6 @@ router.post('/invoices/get',validator.validate('/invoices/get'), permissions.has
 GET POST DETAIL API
 *************************************************************************/
 router.post('/invoices/getDetail',validator.validate('/invoices/getDetail'), permissions.hasReadPermission, invoices.getInvoiceDetail)
-
-/*************************************************************************
-UPDATE POSTS API (UpdateOnePost)
-*************************************************************************/
-router.post('/invoices/update', validator.validate('/invoices/update'), permissions.hasEditPermission, invoices.updateInvoice)
-
-/*************************************************************************
-UPDATE MULTIPLE POSTS API (UpdateMultiplePosts)
-*************************************************************************/
-router.post('/invoices/updateMultiple',validator.validate('/invoices/updateMultiple'), permissions.hasEditPermission, invoices.updateMultipleInvoices)
-
-
-/*************************************************************************
-UPDATE POSTS STATUSES API
-*************************************************************************/
-// router.post('/invoices/updateMultipleStatuses',validator.validate('/invoices/updateMultipleStatuses'), permissions.hasManagerRole, invoices.udpateInvoiceStatuses)
-
-
-/*************************************************************************
-UPDATE POST STATUS API
-*************************************************************************/
-// router.post('/invoices/updateStatus', validator.validate('/invoices/updateStatus'), permissions.hasManagerRole, invoices.updateStatus)
-
 
 /*************************************************************************
 DELETE POST API (DeleteOnePost)
@@ -111,73 +87,30 @@ DELETE ALL POSTS API (DeleteAllPosts)
 *************************************************************************/
 router.post('/invoices/deleteAllInvoices', permissions.hasDeletePermission, invoices.deleteAllInvoices)
 
+/*************************************************************************
+SEND INVOICE VIA EMAIL
+*************************************************************************/
+router.post('/invoices/sendViaEmail',validator.validate('/invoices/sendViaEmail'), permissions.hasReadPermission, invoices.sendInvoiceViaEmail)
+
+/*************************************************************************
+SEND INVOICE VIA EMAIL
+*************************************************************************/
+router.post('/invoices/clone',validator.validate('/invoices/clone'), permissions.hasReadPermission, invoices.cloneInvoice)
 
 /*************************************************************************
 UPLOAD FILE TO S3
 *************************************************************************/
 router.post('/invoices/uploadFileToS3', upload.array('uploadedFiles',1), invoices.uploadFile)
 
-
 /*************************************************************************
 GET S3 FILE DOWNLOAD URL
 *************************************************************************/
 router.get('/getDownloadUrl',general.getDownloadUrl)
 
-
 /*************************************************************************
 FETCH S3 SIGNATURE TO UPLOAD FILES ON S3
 *************************************************************************/
 router.post('/fetchSignature', general.getSignature) 
-
-/*************************************************************************
-CREATE COMMENT (CreateOneComment)
-*************************************************************************/
-// router.post('/comments/create',validator.validate('/comments/create'), permissions.hasCreatePermission, comments.createComment) 
-
-/*************************************************************************
-CREATE MULTIPLE COMMENTS (CreateMultipleComments)
-*************************************************************************/
-// router.post('/comments/createMultiple',validator.validate('/comments/createMultiple'), permissions.hasCreatePermission, comments.createMultipleComments) 
-
-/*************************************************************************
-UPDATE COMMENT (UpdateOneComment)
-*************************************************************************/
-// router.post('/comments/update',validator.validate('/comments/update') , permissions.hasEditPermission, comments.updateComment) 
-
-/*************************************************************************
-UPDATE MULTIPLE COMMENT (UpdateMultipleComments)
-*************************************************************************/
-// router.post('/comments/updateMultiple',validator.validate('/comments/updateMultiple'), permissions.hasEditPermission, comments.updateMultipleComments) 
-
-/*************************************************************************
-GET COMMENTS LIST (ListAllComments,ReadAllComments)
-*************************************************************************/
-// router.post('/comments/get',validator.validate('/comments/get'), permissions.hasReadPermission, comments.getComments) 
-
-/*************************************************************************
-GET ONE COMMENT API (ListOneComment,ReadOneComment)
-*************************************************************************/
-// router.post('/comments/getOne',validator.validate('/comments/getOne'), permissions.hasReadPermission, comments.getCommentDetail)
-
-/*************************************************************************
-DELTE COMMENT (DeleteOneComment)
-*************************************************************************/
-// router.post('/comments/delete',validator.validate('/comments/delete'), permissions.hasDeletePermission, comments.deleteComment)
-
-/*************************************************************************
-DELETE MULTIPLE COMMENTS API (DeleteMultipleComments)
-*************************************************************************/
-// router.post('/comments/deleteMultipleComments',validator.validate('/comments/deleteMultipleComments'), permissions.hasDeletePermission, comments.deleteMultipleComments)
-
-/*************************************************************************
-DELETE ALL COMMENTS API (DeleteAllComments)
-*************************************************************************/
-// router.post('/comments/deleteAllComments', permissions.hasDeletePermission, comments.deleteAllComments)
-
-/*************************************************************************
-UDPATE COMMENT STATUS
-*************************************************************************/
-// router.post('/comments/udpateCommentStatus',validator.validate('/comments/udpateCommentStatus'), permissions.hasManagerRole, comments.updateCommentStatus)
 
 /*************************************************************************
 GET MEDIA API (ListAllMedia)
@@ -203,7 +136,6 @@ router.post('/settings/get', permissions.hasManagerRole, general.getSettings)
 UPDATE SETTINGS API (updateAllSettings)
 *************************************************************************/
 router.post('/settings/updateAll', permissions.hasManagerRole, general.updateAllSettings)
-
 
 /*************************************************************************
 CREATE LOGIN ROUTE TO TEST POSTMAN
