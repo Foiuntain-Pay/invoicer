@@ -80,6 +80,7 @@ config.ALL_INVOICE_DELETED_RESP_MSG = 'All Invoices Deleted Successfully!'
 config.INPUT_VALIDATION_ERROR = 'Input Validation Error!'
 config.MAIL_SENT_RESP_MSG = "Mail Successfully Sent to '{{RECIPIENTS}}'."
 config.INVOICE_CLONED_RESP_MSG = "Invoice With ID '{{ID}}' Successfully Cloned!"
+config.INVOICE_EXISTS_RESP_MSG = "Invoice with Invoice Number '{{INVOICE_NUMBER}}' already exisits for Recipient Company Name '{{RECIPIENT}}'"
 
 module.exports = config
 

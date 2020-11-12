@@ -7,7 +7,7 @@ const config = require('../../config');
 const aws = require('aws-sdk');
 const csv = require('fast-csv');
 const { generateInvoicePDF } = require('../../helpers/generateInvoicePDF');
-const { validateObject, validateData } = require('../../helpers/validate');
+const { validateObject, validateData, capitalize } = require('../../helpers/validate');
 
 
 /**
@@ -37,12 +37,12 @@ const createMultipleInvoices= async (req, res, next) => {
                 let invoice_data = invoices[i]
                 let insert_data = {
                     InvoiceNumber: validateData(invoice_data.invoiceNumber, 'string', 'Invoice Number', errorArr, config, invoice_data),
-                    BillerCompanyName: validateData(invoice_data.billerCompanyName, 'string', 'Biller Company Name', errorArr, config, invoice_data),
+                    BillerCompanyName: validateData(capitalize(invoice_data.billerCompanyName), 'string', 'Biller Company Name', errorArr, config, invoice_data),
                     BillerCompanyAddress:  validateData(invoice_data.billerCompanyAddress, 'string', 'Biller Company Addres', errorArr, config, invoice_data),
                     BillerCompanyLogo: validateData(invoice_data.billerCompanyLogo, 'string', 'Biller Company Logo', errorArr, config, invoice_data),
                     BillerBankName: validateData(invoice_data.billerBankName, 'string', 'Biller Bank Name', errorArr, config, invoice_data),
                     BillerAccountNumber: validateData(invoice_data.billerAccountNumber, 'string', 'Biller Account Number', errorArr, config, invoice_data),
-                    RecipientCompanyName: validateData(invoice_data.recipientCompanyName, 'string', 'Recipient Company Name', errorArr, config, invoice_data),
+                    RecipientCompanyName: validateData(capitalize(invoice_data.recipientCompanyName), 'string', 'Recipient Company Name', errorArr, config, invoice_data),
                     RecipientCompanyAddress: validateData(invoice_data.recipientCompanyAddress, 'string', 'Recipient Company Address', errorArr, config, invoice_data),
                     SubTotal: validateData(invoice_data.subTotal, 'number', 'Invoice Subtotal', errorArr, config, invoice_data),
                     Discount: validateData(invoice_data.discount, 'number', 'Invoice Discount', errorArr, config, invoice_data),
@@ -85,26 +85,41 @@ const createMultipleInvoices= async (req, res, next) => {
 
                 // checks if object is validated and the legnth of lineitems equals the length of inputed line items
                 if (validated && lineItems.length == invoice_data.lineItems.length) {
-                    var result = await DB.invoices.create(insert_data);
-                    result = result.dataValues
-
-                    if (result) {
-                        lineItems.forEach(element => { element.InvoiceId = result.id;}); // adds invoiceId values to each object in the lineitems array
-                        const createdItems = await DB.items.bulkCreate(lineItems) // bulk create lineItems
-                        
-                        if (createdItems) {
-                            result.lineItems = createdItems;
-                            await generateInvoicePDF(result); // called the function for creating invoice pdf by sending the invoice Id.
-                            successArr.push(result)
+                    const invoice = await DB.invoices.findOne({
+                        where: {
+                            InvoiceNumber:insert_data.InvoiceNumber, 
+                            RecipientCompanyName:insert_data.RecipientCompanyName, 
+                            BusinessId:insert_data.BusinessId
                         }
-                        
-                    }
+                    });
 
-                    // SEND PUBLISHED INVOICE CREATION EMAIL TO MANAGER
-                    if(invoice_data.status === 'draft'){
-                        let sendEmailData = {subject:"New Invoice Created",client_base_url:req.headers.client_base_url,businessId: res.locals.businessId, departmentName: res.locals.departmentName}
-                        await general.prepareEmail(res,'INVOICECREATIONTEMPLATE',sendEmailData)
+                    if (!invoice) {
+                        var result = await DB.invoices.create(insert_data);
+                        result = result.dataValues
+
+                        if (result) {
+                            lineItems.forEach(element => { element.InvoiceId = result.id;}); // adds invoiceId values to each object in the lineitems array
+                            const createdItems = await DB.items.bulkCreate(lineItems) // bulk create lineItems
+                            
+                            if (createdItems) {
+                                result.lineItems = createdItems;
+                                await generateInvoicePDF(result); // called the function for creating invoice pdf by sending the invoice Id.
+                                successArr.push(result)
+                            }
+                            
+                        }
+
+                        // SEND PUBLISHED INVOICE CREATION EMAIL TO MANAGER
+                        if(invoice_data.status === 'draft'){
+                            let sendEmailData = {subject:"New Invoice Created",client_base_url:req.headers.client_base_url,businessId: res.locals.businessId, departmentName: res.locals.departmentName}
+                            await general.prepareEmail(res,'INVOICECREATIONTEMPLATE',sendEmailData)
+                        }
+                    } else {
+                        let message = config.INVOICE_EXISTS_RESP_MSG.replace('{{INVOICE_NUMBER}}', insert_data.InvoiceNumber);
+                        message = message.replace('{{RECIPIENT}}', insert_data.RecipientCompanyName);
+                        errorArr.push({errorMsg: message, row: invoice_data})
                     }
+                    
                 }
                 
 
@@ -145,10 +160,10 @@ const createInvoice= async (req, res, next) => {
 
             let insert_data = {
                 InvoiceNumber: req.body.invoice.invoiceNumber,
-                BillerCompanyName: req.body.invoice.billerCompanyName,
+                BillerCompanyName: capitalize(req.body.invoice.billerCompanyName),
                 BillerCompanyAddress: req.body.invoice.billerCompanyAddress,
                 BillerCompanyLogo: req.body.invoice.billerCompanyLogo,
-                BillerBankName: req.body.invoice.billerBankName,
+                BillerBankName: capitalize(req.body.invoice.billerBankName),
                 BillerAccountNumber: req.body.invoice.billerAccountNumber,
                 RecipientCompanyName: req.body.invoice.recipientCompanyName,
                 RecipientCompanyAddress: req.body.invoice.recipientCompanyAddress,
@@ -190,32 +205,50 @@ const createInvoice= async (req, res, next) => {
             });
             // checks if object is validated and the legnth of lineitems equals the length of inputed line items
             if (lineItems.length == req.body.invoice.lineItems.length) {
-                let result = await DB.invoices.create(insert_data);
-                result = result.dataValues
 
-                if (result) {
-                    lineItems.forEach(element => { element.InvoiceId = result.id;}); // adds invoiceId values to each object in the lineitems array
-                    const createdItems = await DB.items.bulkCreate(lineItems) // bulk create lineItems
-                    
-                    if (createdItems) {
-                        result.lineItems = createdItems;
-                        await generateInvoicePDF(result); // called the function for creating invoice pdf by sending the invoice Id.
+                const invoice = await DB.invoices.findOne({
+                    where: {
+                        InvoiceNumber:insert_data.InvoiceNumber, 
+                        RecipientCompanyName:insert_data.RecipientCompanyName, 
+                        BusinessId:insert_data.BusinessId
                     }
+                })
+                if (!invoice) {
+                    let result = await DB.invoices.create(insert_data);
+                    result = result.dataValues
 
-                    // SEND PUBLISHED INVOICE CREATION EMAIL TO MANAGER
-                    if(req.body.invoice.status === 'draft'){
-                        let sendEmailData = {subject:"New Invoice Created",client_base_url:req.headers.client_base_url,businessId: res.locals.businessId, departmentName: res.locals.departmentName}
-                        await general.prepareEmail(res,'INVOICECREATIONTEMPLATE',sendEmailData)
+                    if (result) {
+                        lineItems.forEach(element => { element.InvoiceId = result.id;}); // adds invoiceId values to each object in the lineitems array
+                        const createdItems = await DB.items.bulkCreate(lineItems) // bulk create lineItems
+                        
+                        if (createdItems) {
+                            result.lineItems = createdItems;
+                            await generateInvoicePDF(result); // called the function for creating invoice pdf by sending the invoice Id.
+                        }
+
+                        // SEND PUBLISHED INVOICE CREATION EMAIL TO MANAGER
+                        if(req.body.invoice.status === 'draft'){
+                            let sendEmailData = {subject:"New Invoice Created",client_base_url:req.headers.client_base_url,businessId: res.locals.businessId, departmentName: res.locals.departmentName}
+                            await general.prepareEmail(res,'INVOICECREATIONTEMPLATE',sendEmailData)
+                        }
+
+                        // RETURN RESPONSE
+                        return res.status(200).json({
+                            status: true,
+                            data: result,
+                            message: config.INVOICE_CREATE_SUCCESS_RESP_MSG
+                        })
+                        
                     }
-
-                    // RETURN RESPONSE
-                    return res.status(200).json({
-                        status: true,
-                        data: result,
-                        message: config.INVOICE_CREATE_SUCCESS_RESP_MSG
+                } else {
+                    let message = config.INVOICE_EXISTS_RESP_MSG.replace('{{INVOICE_NUMBER}}', insert_data.InvoiceNumber);
+                    message = message.replace('{{RECIPIENT}}', insert_data.RecipientCompanyName);
+                    return res.status(400).json({
+                        status: false,
+                        message
                     })
-                    
                 }
+                
             } else {
                 return res.status(400).json({
                     status: false,

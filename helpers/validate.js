@@ -33,4 +33,14 @@ const includesData = (data,objects,resource,errorArr,rowData) => {
     return false
 }
 
-module.exports = {validateObject, validateData, includesData};
+const capitalize = (string) => {
+    if (typeof string !== 'string') return ''
+    var splitString = string.toLowerCase().split(' ');
+    for (var i = 0; i < splitString.length; i++) {
+       splitString[i] = splitString[i].charAt(0).toUpperCase() + splitString[i].substring(1);     
+    }
+    // Directly return the joined string
+    return splitString.join(' '); 
+}
+
+module.exports = {validateObject, validateData, includesData, capitalize};
