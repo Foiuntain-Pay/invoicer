@@ -6,6 +6,7 @@ const { validationResult } = require('express-validator');
 const config = require('../../config');
 const aws = require('aws-sdk');
 const csv = require('fast-csv');
+const currencies = require('../../helpers/currencies.json');
 const { generateInvoicePDF } = require('../../helpers/generateInvoicePDF');
 const { validateObject, validateData, capitalize } = require('../../helpers/validate');
 
@@ -367,6 +368,7 @@ const getInvoiceDetail = async(req,res) => {
                 
                 // adds the values for invoicePDF to the invoice[i] datavalue
                 invoice.dataValues.invoicePDF = invoicePDF
+                invoice.dataValues.CurrencySymbol = currencies.filter(currency => currency.code === invoice.get('Currency'))[0].symbolNative;
 
             // RETURN SUCCESS RESPONSE
             return res.status(200).json({
@@ -378,7 +380,7 @@ const getInvoiceDetail = async(req,res) => {
     }
     catch(error){
         // RETURN ERROR RESPONSE
-        return res.status(400).json({status: true, errormessage: error.message})
+        return res.status(400).json({status: false, errormessage: error.message})
     }
 }
 
@@ -699,6 +701,27 @@ const uploadCSV = async (req,res) => {
     }
 }
 
-module.exports = {uploadFile,deleteMultipleInvoices,deleteAllInvoices,deleteInvoice,
+/**
+ * GET INVOICE DETAIL FROM DATABASE
+ * @param {invoiceId} req 
+ * @param {*} res 
+ */
+
+const currencies = async(req,res) => {
+    try{
+
+        return res.status(200).json({
+            status:true,
+            data:currencies,
+            message: 'Currencies Listed Successfully'
+        })
+    }
+    catch(error){
+        // RETURN ERROR RESPONSE
+        return res.status(400).json({status: false, errormessage: error.message})
+    }
+}
+
+module.exports = {uploadFile,deleteMultipleInvoices,deleteAllInvoices,deleteInvoice,currencies,
     getInvoiceDetail,createMultipleInvoices,createInvoice,getInvoices,sendInvoiceViaEmail,cloneInvoice,uploadCSV
 }

@@ -108,6 +108,11 @@ SEND INVOICE VIA EMAIL
 router.post('/invoices/clone',validator.validate('/invoices/clone'), permissions.hasReadPermission, invoices.cloneInvoice)
 
 /*************************************************************************
+GET CURRENCIES
+*************************************************************************/
+router.get('/invoices/currencies', invoices.currencies)
+
+/*************************************************************************
 UPLOAD FILE TO S3
 *************************************************************************/
 router.post('/invoices/uploadFileToS3', upload.array('uploadedFiles',1), invoices.uploadFile)
