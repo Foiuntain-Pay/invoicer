@@ -24,17 +24,17 @@ aws.config.update({
 });
 const s3 = new aws.S3();
 
-const csvFilter = (req, file, cb) => {
+const fileFilter = (req, file, cb) => {
   if (file.mimetype.includes("csv") || file.mimetype.includes("excel") ||
-    file.mimetype.includes("spreadsheetml")) {
+    file.mimetype.includes("spreadsheetml") || file.mimetype.includes("image/jpeg") || file.mimetype.includes("image/png")) {
     cb(null, true);
   } else {
-    cb("Please upload only csv file.", false);
+    cb("Invalid file uploaded.", false);
   }
 };
 
 var upload = multer({
-    fileFilter: csvFilter,
+    fileFilter,
     storage: multerS3({
       s3: s3,
       bucket: config.BUCKETNAME,
