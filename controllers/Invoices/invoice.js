@@ -707,7 +707,7 @@ const uploadCSV = async (req,res) => {
  * @param {*} res 
  */
 
-const currencies = async(req,res) => {
+const getCurrencies = async(req,res) => {
     try{
 
         return res.status(200).json({
@@ -722,6 +722,6 @@ const currencies = async(req,res) => {
     }
 }
 
-module.exports = {uploadFile,deleteMultipleInvoices,deleteAllInvoices,deleteInvoice,currencies,
+module.exports = {uploadFile,deleteMultipleInvoices,deleteAllInvoices,deleteInvoice,getCurrencies,
     getInvoiceDetail,createMultipleInvoices,createInvoice,getInvoices,sendInvoiceViaEmail,cloneInvoice,uploadCSV
 }

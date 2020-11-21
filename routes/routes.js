@@ -110,7 +110,7 @@ router.post('/invoices/clone',validator.validate('/invoices/clone'), permissions
 /*************************************************************************
 GET CURRENCIES
 *************************************************************************/
-router.get('/invoices/currencies', invoices.currencies)
+router.get('/invoices/currencies', invoices.getCurrencies)
 
 /*************************************************************************
 UPLOAD FILE TO S3
