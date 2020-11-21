@@ -517,7 +517,9 @@ const deleteMultipleInvoices = async (req,res) => {
 
 const uploadFile = async (req,res) => { 
     try{
-        return res.status(200).send(req.files[0].location)
+        return res.status(200).json({
+            data: req.files[0].location
+        })
     }
     catch(error){
         return res.status(400).send(JSON.stringify({errormessage: error.message}))
