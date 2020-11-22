@@ -43,7 +43,7 @@ exports.validate = (method) => {
           body('invoice.subTotal').custom(value => { return Number(value) }).withMessage('Subtotal must be an integer'),
           body('invoice.discount').exists().isNumeric().withMessage('Discount must be an integer').optional({ checkFalsy: true }),
           body('invoice.tax').exists().isNumeric().withMessage('Tax must be an integer').optional({ checkFalsy: true }),
-          body('invoice.shipping').exists().isNumeric()('Shipping must be an integer').optional({ checkFalsy: true }),
+          body('invoice.shipping').exists().isNumeric().withMessage('Shipping must be an integer').optional({ checkFalsy: true }),
           body('invoice.amount').custom(value => { return Number(value) }).withMessage('Amount must be an integer'),
           body('invoice.amountPaid').exists().isNumeric().withMessage('Amount Paid must be an integer').optional({ checkFalsy: true }),
           body('invoice.balance').custom(value => { return Number(value) }).withMessage('Balance must be an integer'),
