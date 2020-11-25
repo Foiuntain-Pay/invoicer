@@ -636,6 +636,8 @@ const  cloneInvoice = async (req, res, next) => {
                 "amountPaid": invoice.get('AmountPaid'),
                 "balance": invoice.get('Balance'),
                 "currency": invoice.get('Currency'),
+                "currencySymbol": invoice.get('CurrencySymbol'),
+                "currencyName": invoice.get('CurrencyName'),
                 "dueAt": invoice.get('DueAt'),
                 "status": invoice.get('Status')
             };
