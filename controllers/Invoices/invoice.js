@@ -616,6 +616,8 @@ const  cloneInvoice = async (req, res, next) => {
         } else {
             let invoicePDF = await DB.invoicePdfs.findOne({where:{InvoiceId:invoice.id}})
             invoice.dataValues.InvoicePDF = invoicePDF.get('File')
+            invoice.dataValues.CurrencySymbol = currencies.filter(currency => currency.code === invoice.get('Currency'))[0].symbolNative;
+            invoice.dataValues.CurrencyName = currencies.filter(currency => currency.code === invoice.get('Currency'))[0].name;
             var invoiceData = {
                 "invoiceNumber": invoice.get('InvoiceNumber'),
                 "billerCompanyName": invoice.get('BillerCompanyName'),
