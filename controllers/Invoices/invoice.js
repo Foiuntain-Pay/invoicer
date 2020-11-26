@@ -570,7 +570,8 @@ const  sendInvoiceViaEmail = async (req, res, next) => {
             };
             // send mail function
             const emailIsSent = await general.sendEmail(res,mailOptions)
-            if(emailIsSent) {
+            console.log('email sent',emailIsSent)
+            if(emailIsSent.status == 1) {
                 invoice.update({Status: 'published'});
 
                 // RETURN RESPONSE
