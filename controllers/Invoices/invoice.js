@@ -569,7 +569,9 @@ const  sendInvoiceViaEmail = async (req, res, next) => {
                 ]
             };
             // send mail function
-            await general.sendEmail(res,mailOptions);
+            await general.sendEmail(res,mailOptions)
+
+            await invoice.update({Status: 'published'});
 
             // RETURN RESPONSE
             return res.status(200).json({
