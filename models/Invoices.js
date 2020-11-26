@@ -102,7 +102,7 @@ module.exports = function(sequelize, Sequelize) {
             field: 'dueAt'
         },
         Status: {
-            type: Sequelize.ENUM('draft', 'unpaid', 'paid'),
+            type: Sequelize.ENUM('draft', 'published'),
             field: 'status',
             defaultValue: 'draft'
         },

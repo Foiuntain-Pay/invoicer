@@ -70,6 +70,7 @@ config.ROUTES_EXCLUDED_FROM_AUTH = ["/test",'','/','/auth','/invoices/uploadFile
 // Response Messages
 config.VALIDATE_TYPE_OF_DATA_RESP_MSG = "{{RESOURCE}} '{{DATA}}' must be a {{TYPE}}!"
 config.OPERATION_SUCCESSFUL_RESP_MSG = 'Operation Successfull!'
+config.OPERATION_NOT_SUCCESSFUL_RESP_MSG = 'Operation Not Successfull!'
 config.INVOICE_CREATE_SUCCESS_RESP_MSG = 'Invoice Created Successfully!'
 config.INVOICE_LISTED_SUCCESS_RESP_MSG = 'Invoice Listed Successfully!'
 config.NO_AVAILABLE_INVOICE_RESP_MSG = 'No Available Invoice!'
