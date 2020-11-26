@@ -569,22 +569,12 @@ const  sendInvoiceViaEmail = async (req, res, next) => {
                 ]
             };
             // send mail function
-            const emailIsSent = await general.sendEmail(res,mailOptions)
-            console.log('email sent',emailIsSent)
-            if(emailIsSent.status == 1) {
-                invoice.update({Status: 'published'});
-
-                // RETURN RESPONSE
-                return res.status(200).json({
-                    status: true,
-                    message: config.MAIL_SENT_RESP_MSG.replace('{{RECIPIENTS}}', req.body.mailTo.join(', '))
-                })
-            }
+            await general.sendEmail(res,mailOptions);
 
             // RETURN RESPONSE
-            return res.status(400).json({
-                status: false,
-                message: config.OPERATION_NOT_SUCCESSFUL_RESP_MSG
+            return res.status(200).json({
+                status: true,
+                message: config.MAIL_SENT_RESP_MSG.replace('{{RECIPIENTS}}', req.body.mailTo.join(', '))
             })
         }
         
