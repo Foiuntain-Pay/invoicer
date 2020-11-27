@@ -632,6 +632,8 @@ const  cloneInvoice = async (req, res, next) => {
                 "billerAccountNumber":invoice.get('BillerAccountNumber'),
                 "recipientCompanyName": invoice.get('RecipientCompanyName'),
                 "recipientCompanyAddress": invoice.get('RecipientCompanyAddress'),
+                "recipientCompanyEmail": invoice.get('RecipientCompanyEmail'),
+                "recipientCompanyPhone": invoice.get('RecipientCompanyPhone'),
                 "lineItems": [],
                 "subTotal": invoice.get('SubTotal'),
                 "discount": invoice.get('Discount'),
