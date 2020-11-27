@@ -47,6 +47,16 @@ module.exports = function(sequelize, Sequelize) {
             allowNull: false,
             field: 'recipientCompanyAddress'
         },
+        RecipientCompanyEmail: {
+            type: Sequelize.STRING,
+            allowNull: false,
+            field: 'recipientCompanyEmail'
+        },
+        RecipientCompanyPhone: {
+            type: Sequelize.STRING,
+            allowNull: false,
+            field: 'recipientCompanyPhone'
+        },
         SubTotal: {
             type: Sequelize.INTEGER,
             allowNull: true,
