@@ -133,7 +133,7 @@
                                                 <td td class="text-right font-weight-bold"></td>
                                                 <td td class="text-right font-weight-bold">DISCOUNT (<%= invoiceData.Discount %>%)</td>
                                                 <% const discount = ((invoiceData.SubTotal) * (invoiceData.Discount/100)); %>
-                                                <td class="text-right font-weight-bold text-danger"><%= currencySymbol %> <%= (invoiceData.discount).toLocaleString('en-US', {style: 'decimal', minimumFractionDigits: 2 , maximumFractionDigits: 2}); %></td>
+                                                <td class="text-right font-weight-bold text-danger"><%= currencySymbol %> <%= (discount).toLocaleString('en-US', {style: 'decimal', minimumFractionDigits: 2 , maximumFractionDigits: 2}); %></td>
                                             </tr>
                                             <% } %>
                                             <% if (invoiceData.Tax != null && invoiceData.Tax != 0) { %>
