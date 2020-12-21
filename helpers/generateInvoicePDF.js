@@ -18,10 +18,10 @@ async function generateInvoicePDF(invoiceData, lineItems) {
     const gethtmltopdf = async () => {
         try {
             
-            const filePathName = path.resolve(__dirname, 'invoicePDF.ejs');
+            const filePathName = path.resolve(__dirname, 'invoicePDF-1.ejs');
 
             const htmlString = fs.readFileSync(filePathName).toString();
-            let  options = { format: 'A3' };
+            let  options = { format: 'A4' };
             const ejsData = ejs.render(htmlString, data);
             return await pdf.create(ejsData, options).toStream((err, response) => {
                 if (err) return console.log(err);
