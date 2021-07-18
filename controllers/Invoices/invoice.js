@@ -182,13 +182,7 @@ const createInvoice= async (req, res, next) => {
                 Currency: req.body.invoice.currency,
                 DueAt: req.body.invoice.dueAt,
                 Status: req.body.invoice.status,
-                BusinessId: res.locals.businessId,
-                Email: res.locals.userEmail,
-                UserID: res.locals.accountId,
-                UserName:res.locals.userName,
-                RoleLevel: res.locals.roleLevel,
-                RoleName: res.locals.roleName,
-                DepartmentName: res.locals.departmentName
+                UserID: req.user.id,
             }
 
             // processing the line items for the invoice
@@ -213,9 +207,9 @@ const createInvoice= async (req, res, next) => {
 
                 const invoice = await DB.invoices.findOne({
                     where: {
-                        InvoiceNumber:insert_data.InvoiceNumber, 
-                        RecipientCompanyName:insert_data.RecipientCompanyName, 
-                        BusinessId:insert_data.BusinessId
+                        InvoiceNumber: insert_data.InvoiceNumber, 
+                        RecipientCompanyName: insert_data.RecipientCompanyName, 
+                        UserID: req.user.id
                     }
                 })
                 if (!invoice) {
@@ -292,7 +286,7 @@ const getInvoices = async (req, res, next) => {
         }
 
         let invoice = await DB.invoices.findAll({
-            where:{BusinessId: res.locals.businessId},
+            where:{UserID: req.user.id}
         })
 
         let invoices = []
@@ -351,7 +345,7 @@ const getInvoiceDetail = async(req,res) => {
 
 
         let invoice = await DB.invoices.findOne({
-            where:{ id: req.body.invoiceId, BusinessId: res.locals.businessId },
+            where:{ id: req.body.invoiceId, UserID: req.user.id },
             include:{ model: DB.items }
         })
         
@@ -409,7 +403,7 @@ const deleteInvoice = async (req,res) => {
         const checkInvoice = await DB.invoices.findOne({
             where: {
                 id: invoiceId,
-                BusinessId: res.locals.businessId
+                UserID: req.user.id
             }
         })
         
@@ -451,7 +445,7 @@ const deleteAllInvoices = async (req,res) => {
 
         DB.invoices.destroy({
             force: true,
-            where: {BusinessId: res.locals.businessId}
+            where: {UserID: req.user.id}
         })
 
         // RETURN SUCCESS RESPONSE
@@ -490,7 +484,7 @@ const deleteMultipleInvoices = async (req,res) => {
             const checkInvoice = await DB.invoices.findOne({
                 where: {
                     id: ids[i],
-                    BusinessId: res.locals.businessId
+                    UserID: req.user.id
                 }
             })
             if (checkInvoice) {
@@ -550,7 +544,7 @@ const  sendInvoiceViaEmail = async (req, res, next) => {
 
         // checks if the ID exists
         var invoice = await DB.invoices.findOne({
-            where:{ id: req.body.invoiceId, BusinessId: res.locals.businessId },
+            where:{ id: req.body.invoiceId, UserID: req.user.id },
         })
         if (!invoice) {
             return res.status(400).json({
@@ -610,7 +604,7 @@ const  cloneInvoice = async (req, res, next) => {
         }
         // checks if the ID exists
         var invoice = await DB.invoices.findOne({
-            where:{ id: req.body.invoiceId, BusinessId: res.locals.businessId },
+            where:{ id: req.body.invoiceId, UserID: req.user.id },
             include:{ model: DB.items }
         })
         if (!invoice) {
@@ -624,29 +618,29 @@ const  cloneInvoice = async (req, res, next) => {
             invoice.dataValues.CurrencySymbol = currencies.filter(currency => currency.code === invoice.get('Currency'))[0].symbolNative;
             invoice.dataValues.CurrencyName = currencies.filter(currency => currency.code === invoice.get('Currency'))[0].name;
             var invoiceData = {
-                "invoiceNumber": invoice.get('InvoiceNumber'),
-                "billerCompanyName": invoice.get('BillerCompanyName'),
-                "billerCompanyAddress": invoice.get('BillerCompanyAddress'),
-                "billerCompanyLogo": invoice.get('BillerCompanyLogo'),
-                "billerBankName": invoice.get('BillerBankName'),
-                "billerAccountNumber":invoice.get('BillerAccountNumber'),
-                "recipientCompanyName": invoice.get('RecipientCompanyName'),
-                "recipientCompanyAddress": invoice.get('RecipientCompanyAddress'),
-                "recipientCompanyEmail": invoice.get('RecipientCompanyEmail'),
-                "recipientCompanyPhone": invoice.get('RecipientCompanyPhone'),
-                "lineItems": [],
-                "subTotal": invoice.get('SubTotal'),
-                "discount": invoice.get('Discount'),
-                "tax": invoice.get('Tax'),
-                "shipping": invoice.get('Shipping'),
-                "amount": invoice.get('Amount'),
-                "amountPaid": invoice.get('AmountPaid'),
-                "balance": invoice.get('Balance'),
-                "currency": invoice.get('Currency'),
-                "currencySymbol": invoice.get('CurrencySymbol'),
-                "currencyName": invoice.get('CurrencyName'),
-                "dueAt": invoice.get('DueAt'),
-                "status": invoice.get('Status')
+                invoiceNumber: invoice.get('InvoiceNumber'),
+                billerCompanyName: invoice.get('BillerCompanyName'),
+                billerCompanyAddress: invoice.get('BillerCompanyAddress'),
+                billerCompanyLogo: invoice.get('BillerCompanyLogo'),
+                billerBankName: invoice.get('BillerBankName'),
+                billerAccountNumber:invoice.get('BillerAccountNumber'),
+                recipientCompanyName: invoice.get('RecipientCompanyName'),
+                recipientCompanyAddress: invoice.get('RecipientCompanyAddress'),
+                recipientCompanyEmail: invoice.get('RecipientCompanyEmail'),
+                recipientCompanyPhone: invoice.get('RecipientCompanyPhone'),
+                lineItems: [],
+                subTotal: invoice.get('SubTotal'),
+                discount: invoice.get('Discount'),
+                tax: invoice.get('Tax'),
+                shipping: invoice.get('Shipping'),
+                amount: invoice.get('Amount'),
+                amountPaid: invoice.get('AmountPaid'),
+                balance: invoice.get('Balance'),
+                currency: invoice.get('Currency'),
+                currencySymbol: invoice.get('CurrencySymbol'),
+                currencyName: invoice.get('CurrencyName'),
+                dueAt: invoice.get('DueAt'),
+                status: invoice.get('Status')
             };
 
             invoice.dataValues.items.forEach(item => {

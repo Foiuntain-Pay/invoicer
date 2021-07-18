@@ -25,7 +25,7 @@ var sequelize = new Sequelize(config.DBNAME, config.DBUSERNAME, config.DBPASSWOR
     dialect: config.DBDIALECT,
     logging: false,
     dialectOptions: {
-        ssl: config.SSL
+        ssl: { rejectUnauthorized: false }
     }
 });
 

@@ -3,12 +3,8 @@ const router = express.Router()
 
 var config = require('../config');
 
-var authenticate = require('../controllers/Auth/authentication')
-var permissions = require('../controllers/Permissions/permissions')
+const {login, register, isAuthorized} = require('../controllers/Auth/authentication')
 var invoices = require('../controllers/Invoices/invoice')
-// var comments = require('../controllers/Comments/comments')
-var media = require('../controllers/Media/media')
-var general = require('../controllers/General/general');
 
 const validator = require("../controllers/Validator/validator")
 const { validationResult } = require('express-validator');
@@ -51,61 +47,60 @@ var upload = multer({
 API CALL START
 *************************************************************************/
 
-/*************************************************************************
-CREATE JWT TOKEN
-*************************************************************************/
-router.post('/',authenticate.createJWTToken)
+// INDEX ROUTE TO SHOW API IS WORKING FINE
+router.get('/', (req, res, next) => {res.status(200).send("API Working")});
 
-/*************************************************************************
-CRETE JWT TOKEN
-*************************************************************************/
-router.post('/auth', authenticate.createJWTToken)
-/*************************************************************************
+// LOGIN && REGISTER ROUTE
+router.post('/login', login);
+router.post('/register', register);
+
+// DASHBORD ROUTE
+// router.get('/dashboard', dashboard.billsDashboard)
 
 /*************************************************************************
 CREATE POSTS API (CreateOnePost)
 *************************************************************************/
-router.post('/invoices/create',validator.validate('/invoices/create'), permissions.hasCreatePermission, invoices.createInvoice)
+router.post('/invoices/create',validator.validate('/invoices/create'), invoices.createInvoice)
 
 /*************************************************************************
 CREATE MULTIPLE POSTS API (CreateMultiplePosts)
 *************************************************************************/
-router.post('/invoices/createMultiple',validator.validate('/invoices/createMultiple'), permissions.hasCreatePermission, invoices.createMultipleInvoices)
+router.post('/invoices/createMultiple',validator.validate('/invoices/createMultiple'), invoices.createMultipleInvoices)
 
 /*************************************************************************
 GET POSTS API (ListAllPosts)
 *************************************************************************/
-router.post('/invoices/get',validator.validate('/invoices/get'), permissions.hasReadPermission, invoices.getInvoices)
+router.post('/invoices/get',validator.validate('/invoices/get'), invoices.getInvoices)
 
 /*************************************************************************
 GET POST DETAIL API
 *************************************************************************/
-router.post('/invoices/getDetail',validator.validate('/invoices/getDetail'), permissions.hasReadPermission, invoices.getInvoiceDetail)
+router.post('/invoices/getDetail',validator.validate('/invoices/getDetail'), invoices.getInvoiceDetail)
 
 /*************************************************************************
 DELETE POST API (DeleteOnePost)
 *************************************************************************/
-router.post('/invoices/delete',validator.validate('/invoices/delete'), permissions.hasDeletePermission, invoices.deleteInvoice)
+router.post('/invoices/delete',validator.validate('/invoices/delete'), invoices.deleteInvoice)
 
 /*************************************************************************
 DELETE MULTIPLE POSTS API (DeleteMultiplePosts)
 *************************************************************************/
-router.post('/invoices/deleteMultipleInvoices',validator.validate('/invoices/deleteMultipleInvoices'), permissions.hasDeletePermission, invoices.deleteMultipleInvoices)
+router.post('/invoices/deleteMultipleInvoices',validator.validate('/invoices/deleteMultipleInvoices'), invoices.deleteMultipleInvoices)
 
 /*************************************************************************
 DELETE ALL POSTS API (DeleteAllPosts)
 *************************************************************************/
-router.post('/invoices/deleteAllInvoices', permissions.hasDeletePermission, invoices.deleteAllInvoices)
+router.post('/invoices/deleteAllInvoices', invoices.deleteAllInvoices)
 
 /*************************************************************************
 SEND INVOICE VIA EMAIL
 *************************************************************************/
-router.post('/invoices/sendViaEmail',validator.validate('/invoices/sendViaEmail'), permissions.hasReadPermission, invoices.sendInvoiceViaEmail)
+router.post('/invoices/sendViaEmail',validator.validate('/invoices/sendViaEmail'), invoices.sendInvoiceViaEmail)
 
 /*************************************************************************
 SEND INVOICE VIA EMAIL
 *************************************************************************/
-router.post('/invoices/clone',validator.validate('/invoices/clone'), permissions.hasReadPermission, invoices.cloneInvoice)
+router.post('/invoices/clone',validator.validate('/invoices/clone'), invoices.cloneInvoice)
 
 /*************************************************************************
 GET CURRENCIES
@@ -121,46 +116,6 @@ router.post('/invoices/uploadFileToS3', upload.array('uploadedFiles',1), invoice
 UPLOAD CSV FILE 
 *************************************************************************/
 router.post('/invoices/uploadCSV', upload.array('uploadedCSVfile',1), invoices.uploadCSV)
-
-/*************************************************************************
-GET S3 FILE DOWNLOAD URL
-*************************************************************************/
-router.get('/getDownloadUrl',general.getDownloadUrl)
-
-/*************************************************************************
-FETCH S3 SIGNATURE TO UPLOAD FILES ON S3
-*************************************************************************/
-router.post('/fetchSignature', general.getSignature) 
-
-/*************************************************************************
-GET MEDIA API (ListAllMedia)
-*************************************************************************/
-router.post('/media/get', permissions.hasReadPermission, media.getMedia)
-
-/*************************************************************************
-DELTE MEDIA (DeleteOneMedia)
-*************************************************************************/
-router.post('/media/delete',validator.validate('/media/delete'), permissions.hasDeletePermission, media.deleteMedia)
-
-/*************************************************************************
-DELETE MULTIPLE MEDIAS API (DeleteMultipleMedias)
-*************************************************************************/
-router.post('/media/deleteMultipleMedias',validator.validate('/media/deleteMultipleMedias'), permissions.hasDeletePermission, media.deleteMultipleMedias)
-
-/*************************************************************************
-GET SETTINGS API (listAllSettings)
-*************************************************************************/
-router.post('/settings/get', permissions.hasManagerRole, general.getSettings)
-
-/*************************************************************************
-UPDATE SETTINGS API (updateAllSettings)
-*************************************************************************/
-router.post('/settings/updateAll', permissions.hasManagerRole, general.updateAllSettings)
-
-/*************************************************************************
-CREATE LOGIN ROUTE TO TEST POSTMAN
-*************************************************************************/
-router.post('/login',authenticate.getUserToken)
 
 
 module.exports = router;

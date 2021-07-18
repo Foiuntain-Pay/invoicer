@@ -116,33 +116,9 @@ module.exports = function(sequelize, Sequelize) {
             field: 'status',
             defaultValue: 'draft'
         },
-        BusinessId: {
-            type: Sequelize.INTEGER,
-            field: 'businessId'
-        },
         UserID: {
-            type: Sequelize.STRING,
-            field: 'userId'
-        },
-        UserName: {
-            type: Sequelize.STRING,
-            field: 'UserName'
-        },
-        RoleLevel: {
             type: Sequelize.INTEGER,
-            field: 'roleLevel'
-        },
-        RoleName: {
-            type: Sequelize.STRING,
-            field: 'roleName'
-        },
-        DepartmentName: {
-            type: Sequelize.STRING,
-            field: 'departmentName'
-        },
-        Email: {
-            type: Sequelize.STRING,
-            field: 'email'
+            field: 'userId'
         },
         
     }, {
@@ -150,6 +126,7 @@ module.exports = function(sequelize, Sequelize) {
     });
 
     Invoices.associate = function(models) {
+        models.invoices.belongsTo(models.users, {onDelete: 'CASCADE',targetKey: "id", foreignKey: 'userId'});
         models.invoices.hasMany(models.items, {onDelete: 'cascade',targetKey: "id", foreignKey: 'invoiceId'});
         models.invoices.hasMany(models.invoicePdfs, {onDelete: 'cascade',targetKey: "id", foreignKey: 'invoiceId'});
     };
