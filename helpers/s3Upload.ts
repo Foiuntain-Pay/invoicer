@@ -1,6 +1,7 @@
-var config = require('../config');
-const AWS = require('aws-sdk');
-var DB = require('../controllers/DB/db');
+import config from '../config/config';
+import AWS from 'aws-sdk';
+import DB from '../controllers/DB/db';
+import { ReadStream } from 'fs';
 
 // initiate s3 library from AWS
 const s3 = new AWS.S3({
@@ -10,7 +11,7 @@ const s3 = new AWS.S3({
 
 
 
-async function s3Upload(image,invoiceId) {
+async function s3Upload(image: string,invoiceId: any) {
     
     const buf = Buffer.from(image.replace(/^data:image\/\w+;base64,/, ""),'base64')
     const type = image.split(';')[0].split('/')[1];
@@ -22,7 +23,7 @@ async function s3Upload(image,invoiceId) {
             ContentType: 'image/jpeg'
         };
         
-    s3.upload(params, function(err, data){
+    s3.upload(params, function(err: any, data: { Location: any; }){
         if (err) { 
             console.log(err);
             console.log('Error uploading data: ', data); 
@@ -35,25 +36,25 @@ async function s3Upload(image,invoiceId) {
     });
 }
 
-async function s3UploadPDF(invoiceData, response, rej) {
+async function s3UploadPDF(invoiceData: { currency?: string; invoiceNumber?: any; id?: any; pdfFile?: any; }, response: ReadStream, rej: { (reason?: any): void; (arg0: string): void; }) {
     
     const uploadParams = {
       Bucket: config.BUCKETNAME,
-      Key: `${Date.now().toString()}-${invoiceData.InvoiceNumber}.pdf`,
+      Key: `${Date.now().toString()}-${invoiceData.invoiceNumber}.pdf`,
       ACL: config.ACL,
       Body: response,
     };
-    return s3.upload(uploadParams, (err, data) => {
+    return s3.upload(uploadParams, (err: any, data: { Location: any; }) => {
       if (err) {
           console.log("error", err);
         rej('');
       }
       // console.log(`Invoice PDF uploaded successfully at ${data.Location}`);
       var pdfData = {
-        File: data.Location,
-        InvoiceId: invoiceData.id
+        file: data.Location,
+        invoiceId: invoiceData.id
       }
-      DB.invoicePdfs.create(pdfData).then(function(invoicePdf) {
+      DB.invoicePdfs.create(pdfData).then(function(invoicePdf: any) {
           // console.log("updated the Invoice record with the pdf file location");
           invoiceData.pdfFile = invoicePdf
       });
@@ -61,6 +62,4 @@ async function s3UploadPDF(invoiceData, response, rej) {
     });
 }
 
-module.exports = {
-  s3Upload, s3UploadPDF
-};
+export {s3Upload, s3UploadPDF}

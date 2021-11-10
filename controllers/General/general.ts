@@ -1,9 +1,9 @@
-var FroalaEditor = require('wysiwyg-editor-node-sdk/lib/froalaEditor.js');
-var config = require('../../config');
-var aws = require('aws-sdk')
-var DB = require('../DB/db');
-const nodemailer = require('nodemailer')
-const { Op } = require('sequelize');
+// import FroalaEditor from 'wysiwyg-editor-node-sdk/lib/froalaEditor.js';
+import config from '../../config/config';
+import aws from 'aws-sdk';
+import DB from '../DB/db';
+import nodemailer from 'nodemailer';
+import { Op } from 'sequelize';
 
 aws.config.update({
     secretAccessKey: config.SECRETKEY,
@@ -16,7 +16,7 @@ aws.config.update({
  * @param {*} setting_name 
  */
 
-exports.getSetting = async (res,setting_name) => {
+const getSetting = async (res: any, setting_name: any) => {
 
     if(res.locals.settings){
         let settings = res.locals.settings
@@ -36,19 +36,19 @@ exports.getSetting = async (res,setting_name) => {
  * @param {*} data 
  */
 
-const prepareEmail = async (res,templateName, data) => {
+const prepareEmail = async (res: any, templateName: any, data: any) => {
     try{
         let html = config[templateName]
         // Set Mail Options
         var mailOptions = {
-            from: await this.getSetting(res,'MAIL_FROM'),
+            from: await getSetting(res,'MAIL_FROM'),
             to: '',
             subject: '',
             html: html
         };
 
 
-        let result = []
+        let result = [] as any
         // GET EMAIL LSIT FROM DATABASE
         if(data.hasOwnProperty('invoiceId')){
             mailOptions.subject = data.subject
@@ -70,7 +70,7 @@ const prepareEmail = async (res,templateName, data) => {
         }
         return new Promise( async function(resolve, reject) {
 
-            let emailsResult = []
+            let emailsResult = [] as any
             // LOOP OVER ALL RESULT TO GET EMAIL
             if(result.length){
             for( let i = 0 ; i < result.length ; i++ ){
@@ -105,18 +105,18 @@ const prepareEmail = async (res,templateName, data) => {
     }
 }
 
-const sendEmail = async (res,mailOptions) => {
+const sendEmail = async (res: any, mailOptions: any) => {
     try{
 
         let response_data = {}
 
         // Set Mail Authentications
         let transporter = nodemailer.createTransport({
-            host: await this.getSetting(res,'MAIL_HOST'),
-            secure: await this.getSetting(res,'MAIL_SECURE'),
+            host: await getSetting(res,'MAIL_HOST'),
+            secure: await getSetting(res,'MAIL_SECURE'),
             auth: {
-                user: await this.getSetting(res,'MAIL_USERNAME'),
-                pass: await this.getSetting(res,'MAIL_PASSWORD')
+                user: await getSetting(res,'MAIL_USERNAME'),
+                pass: await getSetting(res,'MAIL_PASSWORD')
             }
         });
 
@@ -145,69 +145,6 @@ const sendEmail = async (res,mailOptions) => {
     }
 }
 
-/**
- * when any route runs, this middleware copy settings from DB to locals so that app gets latest configurations
- * @param {*} req 
- * @param {*} res 
- * @param {*} next 
- */
-
-const loadSettingsFromDBToLocals = async (req,res,next) => {
-    //this code runs on start of each call to check if user is valid
-
-    let settings = await DB.settings.findAll()
-
-    let setting_obj = {};
-
-    if(settings.length){
-        for(let i=0;i<settings.length;i++){
-
-            let set = settings[i].get()
-
-            if(Object.keys(set).length){
-                setting_obj[set.Name] = set.Value
-            }
-
-        }
-    }
-
-    res.locals = { ...res.locals,settings:setting_obj }
-
-    next();
-
-}
-
-/**
- * this method will copy settings from config to DB, whose are not present in DB
- */
-
-const copySettingsFromConfigToDB = async () => {
-
-    //first let's get settings from database
-
-    let settings = await DB.settings.findAll()
-
-    if(settings.length){
-
-        for(let i=0;i<settings.length;i++){
-            let setting = settings[i].get()
-
-            if(!setting.Value){
-
-                //we need to update this setting from config as it's value in empty
-                await DB.settings.update({Value:config[setting.Name]},{
-                    where:{
-                        Name:setting.Name
-                    }
-                })
-
-            }
-
-        }
-
-    }
-
-                    }
 
 /**
  * get all settings from DB to show them to manager on front side
@@ -216,7 +153,7 @@ const copySettingsFromConfigToDB = async () => {
  * @param {*} next 
  */
 
-const getSettings = async (req,res,next) => {
+const getSettings = async (req: any, res: any, next: any) => {
     try{
         let settings = await DB.settings.findAll({
             
@@ -239,7 +176,7 @@ const getSettings = async (req,res,next) => {
  * @param {*} next 
  */
 
-const updateAllSettings = async (req,res,next) => {
+const updateAllSettings = async (req: any, res: any, next: any) => {
 
     try{
         let settings = req.body.settings
@@ -268,7 +205,6 @@ const updateAllSettings = async (req,res,next) => {
     }
     }
 
-module.exports = {
-    getSetting:exports.getSetting,
-    loadSettingsFromDBToLocals,updateAllSettings,getSettings,copySettingsFromConfigToDB,prepareEmail,sendEmail
+export default {
+    getSetting,updateAllSettings,getSettings,prepareEmail,sendEmail
 }

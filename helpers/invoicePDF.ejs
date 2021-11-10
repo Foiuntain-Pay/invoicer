@@ -311,13 +311,13 @@
 	<header class="clearfix">
 		<div class="container">
 			<figure>
-				<img class="logo" src="<%= invoiceData.BillerCompanyLogo %>" alt="">
+				<img class="logo" src="<%= businessData.logo %>" alt="">
 			</figure>
 			<div class="company-info" style="float:right">
-				<h2 class="title"><%= invoiceData.BillerCompanyName %></h2>
-				<span><%= invoiceData.BillerCompanyAddress %></span>
+				<h2 class="title"><%= businessData.name %></h2>
+				<span><%= businessData.address %></span>
 				<span class="line"></span>
-				<a class="email" href="mailto:<%=invoiceData.Email%>"><%=invoiceData.Email%></a>
+				<a class="email" href="mailto:<%=businessData.email%>"><%=businessData.email%></a>
 			</div>
 		</div>
 	</header>
@@ -326,10 +326,10 @@
 		<div class="details clearfix">
 			<div class="client left">
 				<p>INVOICE TO:</p>
-				<p class="name"><%= invoiceData.RecipientCompanyName %></p>
-				<p><%= invoiceData.RecipientCompanyAddress %></p>
-				<a href="mailto:<%= invoiceData.RecipientCompanyEmail %>"><%= invoiceData.RecipientCompanyEmail %></a><br>
-				<a href="tel:<%= invoiceData.RecipientCompanyPhone %>"><%= invoiceData.RecipientCompanyPhone %></a>
+				<p class="name"><%= clientData.name %></p>
+				<p><%= clientData.address %></p>
+				<a href="mailto:<%= clientData.email %>"><%= clientData.email %></a><br>
+				<a href="tel:<%= clientData.phone %>"><%= clientData.phone %></a>
 			</div>
 			<div class="data right">
 				<div class="title">Invoice <%= invoiceData.invoiceNumber%></div>
@@ -352,14 +352,14 @@
 						</tr>
 					</tbody>
 					<tbody class="body">
-						<% invoiceData.lineItems.forEach(function(item) { %>
+						<% items.forEach(function(item) { %>
 							
 							<tr>
 								<td class="no"></td>
-								<td class="desc"><%= item.Description %></td>
-								<td class="qty"><%= item.Qty %></td>
-								<td class="unit"><%= currencySymbol %> <%= (item.Rate || 0).toLocaleString('en-US', {style: 'decimal', minimumFractionDigits: 2 , maximumFractionDigits: 2}); %></td>
-								<% const amount = item.Qty * item.Rate %>
+								<td class="desc"><%= item.product.name %></td>
+								<td class="qty"><%= item.qty %></td>
+								<td class="unit"><%= currencySymbol %> <%= (item.product.amount || 0).toLocaleString('en-US', {style: 'decimal', minimumFractionDigits: 2 , maximumFractionDigits: 2}); %></td>
+								<% const amount = item.qty * (item.product.amount || 1) %>
 								<td class="total"><%= currencySymbol %> <%= (amount || 0).toLocaleString('en-US', {style: 'decimal', minimumFractionDigits: 2 , maximumFractionDigits: 2}); %></td>
 							</tr>
 						<% }); %>
@@ -375,48 +375,48 @@
 							<td class="desc"></td>
 							<td class="qty"></td>
 							<td class="unit">SUBTOTAL:</td>
-							<td class="total"><%= currencySymbol %> <%= (invoiceData.SubTotal).toLocaleString('en-US', {style: 'decimal', minimumFractionDigits: 2 , maximumFractionDigits: 2}); %></td>
+							<td class="total"><%= currencySymbol %> <%= (invoiceData.subTotal).toLocaleString('en-US', {style: 'decimal', minimumFractionDigits: 2 , maximumFractionDigits: 2}); %></td>
 						</tr>
-						<% if (invoiceData.Discount != null && invoiceData.Discount != 0) { %>
+						<% if (invoiceData.discount != null && invoiceData.discount != 0) { %>
 						<tr>
 							<td class="no"></td>
 							<td class="desc"></td>
 							<td class="qty"></td>
-							<td class="unit">DISCOUNT <%= invoiceData.Discount %>%:</td>
-							<% const discount = ((invoiceData.SubTotal) * (invoiceData.Discount/100)); %>
+							<td class="unit">DISCOUNT <%= invoiceData.discount %>%:</td>
+							<% const discount = ((invoiceData.subTotal) * (invoiceData.discount/100)); %>
 							<td class="total"><%= currencySymbol %> <%= (discount).toLocaleString('en-US', {style: 'decimal', minimumFractionDigits: 2 , maximumFractionDigits: 2}); %></td>
 						</tr>
 						<% } %>
-						<% if (invoiceData.Tax != null && invoiceData.Tax != 0) { %>
+						<% if (invoiceData.tax != null && invoiceData.tax != 0) { %>
 						<tr>
 							<td class="no"></td>
 							<td class="desc"></td>
 							<td class="qty"></td>
-							<td class="unit">TAX <%= invoiceData.Tax %>%:</td>
-							<% const tax = ((invoiceData.SubTotal) * (invoiceData.Tax/100)); %>
+							<td class="unit">TAX <%= invoiceData.tax %>%:</td>
+							<% const tax = ((invoiceData.subTotal) * (invoiceData.tax/100)); %>
 							<td class="total"><%= currencySymbol %> <%= (tax).toLocaleString('en-US', {style: 'decimal', minimumFractionDigits: 2 , maximumFractionDigits: 2}); %></td>
 						</tr>
 						<% } %>
-						<% if (invoiceData.Shipping != null && invoiceData.Shipping != 0) { %>
+						<% if (invoiceData.shipping != null && invoiceData.shipping != 0) { %>
 						<tr>
 							<td class="no"></td>
 							<td class="desc"></td>
 							<td class="qty"></td>
 							<td class="unit">SHIPPING:</td>
-							<td class="total"><%= currencySymbol %> <%= (invoiceData.Shipping).toLocaleString('en-US', {style: 'decimal', minimumFractionDigits: 2 , maximumFractionDigits: 2}); %></td>
+							<td class="total"><%= currencySymbol %> <%= (invoiceData.shipping).toLocaleString('en-US', {style: 'decimal', minimumFractionDigits: 2 , maximumFractionDigits: 2}); %></td>
 						</tr>
 						<% } %>
-						<% if (invoiceData.AmountPaid != null && invoiceData.AmountPaid != 0) { %>
+						<% if (invoiceData.amountPaid != null && invoiceData.amountPaid != 0) { %>
 						<tr>
 							<td class="no"></td>
 							<td class="desc"></td>
 							<td class="qty"></td>
 							<td class="unit">AMOUNT PAID:</td>
-							<td class="total"><%= currencySymbol %> <%= (invoiceData.AmountPaid).toLocaleString('en-US', {style: 'decimal', minimumFractionDigits: 2 , maximumFractionDigits: 2}); %></td>
+							<td class="total"><%= currencySymbol %> <%= (invoiceData.amountPaid).toLocaleString('en-US', {style: 'decimal', minimumFractionDigits: 2 , maximumFractionDigits: 2}); %></td>
 						</tr>
 						<% } %>
 						<tr>
-							<td class="grand-total" colspan="5"><div><span>GRAND TOTAL:</span><%= currencySymbol %> <%= (invoiceData.Balance || 0).toLocaleString('en-US', {style: 'decimal', minimumFractionDigits: 2 , maximumFractionDigits: 2}); %></div></td>
+							<td class="grand-total" colspan="5"><div><span>GRAND TOTAL:</span><%= currencySymbol %> <%= (invoiceData.balance || 0).toLocaleString('en-US', {style: 'decimal', minimumFractionDigits: 2 , maximumFractionDigits: 2}); %></div></td>
 						</tr>
 					</tbody>
 				</table>
@@ -427,8 +427,8 @@
 	<footer>
 		<div class="container">
 			<div class="notice">
-				<div>BANK NAME: <%= invoiceData.BillerBankName%></div>
-				<div>ACC. NO: <%= invoiceData.BillerAccountNumber%></div>
+				<div>BANK NAME: <%= businessData.bankName%></div>
+				<div>ACC. NO: <%= businessData.bankAccountNumber%></div>
 			</div>
 			<div class="thanks">Thank you!</div>
 			<div class="end">Invoice was created on an Invoice generating app and is valid without the signature and seal.</div>

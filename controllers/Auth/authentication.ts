@@ -1,8 +1,8 @@
-var config = require('../../config')
-var jwt = require('jsonwebtoken')
-const bcrypt = require('bcryptjs');
-var DB = require('../DB/db')
-var { handleResponse } = require('../Helpers/helpers');
+import config from '../../config/config';
+import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
+import DB from '../DB/db';
+import { handleResponse } from '../Helpers/helpers';
 
 
 /**
@@ -12,24 +12,17 @@ var { handleResponse } = require('../Helpers/helpers');
  * @param {*} next 
  */
 
- const register = async (req, res, next) => {
-    
+export const register = async (req: { body: { firstName: string; lastName: string; phone: string; email: string; password: string; }; }, res: any, next: any) => {
     const {firstName, lastName, phone, email, password} = req.body
-    console.log(password)
-    let insertData = {
-        FirstName: firstName,
-        LastName: lastName,
-        Phone: phone,
-        Email: email,
-    };
+    let insertData = {firstName, lastName, phone, email} as any;
     //Hash password
     const salt = await bcrypt.genSalt(15);
     const hashPassword = await bcrypt.hash(password, salt);
     // const hashPassword = await bcrypt.hashSync(password, 10);
-    insertData.Password = hashPassword;
+    insertData.password = hashPassword;
     
     try {
-        let userExists = await DB.users.findOne({where:{Email:email}});
+        let userExists = await DB.users.findOne({where:{email}});
         
         // if user exists stop the process and return a message
         if (userExists) {
@@ -38,23 +31,14 @@ var { handleResponse } = require('../Helpers/helpers');
         let user = await DB.users.create(insertData)
         
         if (user) {
-            
-            let payload = { 
-                id: user.id, 
-                firstName: user.FirstName, 
-                lastName: user.LastName, 
-                phone: user.Phone,
-                email: user.Email
-            };
+            const {id, firstName, lastName, phone, email} = user;
+            let payload = { id, firstName, lastName, phone, email };
             const token = jwt.sign(payload, config.JWTSECRET);
-            const data ={
-                token,
-                user:payload
-            }
+            const data = { token, user:payload }
             return handleResponse(res, 200, true, `Registration successfull`, data );
         }
         else {
-            return handleResponse(res, 401, false, `An error occured`);
+            return handleResponse(res, 400, false, `An error occured`);
         }
     } catch (error) {
         console.log(error);
@@ -62,29 +46,23 @@ var { handleResponse } = require('../Helpers/helpers');
     }
 };
 
-const login = async (req, res, next) => {
+export const login = async (req: { body: { email: string; password: string; }; }, res: any, next: any) => {
     const {email, password} = req.body;
-    // console.log({email,password})
     try {
-        let user = await DB.users.findOne({ where:{Email: email} });
+        const user = await DB.users.findOne({ where:{email} });
         
         if (user) {
-            const validPass = await bcrypt.compareSync(password, user.Password);
+            const {id, firstName, lastName, email, phone, status} = user
+            const validPass = await bcrypt.compareSync(password, user.password);
             if (!validPass) return handleResponse(res, 401, false, `Email or Password is incorrect!`);
 
-            if (user.Status === 'inactive') return handleResponse(res, 401, false, `Account Suspended!, Please contact Administrator`);
+            if (status === 'inactive') return handleResponse(res, 401, false, `Account Suspended!, Please contact Administrator`);
     
             // Create and assign token
-            let payload = { 
-                id: user.id, 
-                email: user.Email, 
-                firstName: user.FirstName, 
-                lastName: user.LastName,
-                phone: user.Phone
-            };
+            let payload = { id, email, firstName, lastName, phone };
             const token = jwt.sign(payload, config.JWTSECRET);
     
-            res.status(200).header("auth-token", token).send({ 
+            return res.status(200).header("auth-token", token).send({ 
                 success: true, 
                 message: 'Operation Successfull',
                 token, 
@@ -100,7 +78,7 @@ const login = async (req, res, next) => {
     }
 };
 
-const isAuthorized = async (req, res, next) => {
+export const isAuthorized = async (req: { originalUrl: string; headers: { authorization: any; }; user: string | jwt.JwtPayload; }, res: any, next: () => void) => {
     
     //this is the url without query params
     let current_route_path = req.originalUrl.split("?").shift();
@@ -130,20 +108,18 @@ const isAuthorized = async (req, res, next) => {
     }
 };
 
-const isControl = async (req, res, next) => {
+export const isControl = async (req: { user: { roleId: number; }; }, res: any, next: () => void) => {
     if (req.user.roleId === 2) {
         next();
     }
     return handleResponse(res, 401, false, `Access Denied / Unauthorized request`); 
 };
 
-const isAdmin = async (req, res, next) => {
+export const isAdmin = async (req: { user: { roleId: number; }; }, res: any, next: () => void) => {
     if (req.user.roleId >= 1) {
         next();
     }
     return handleResponse(res, 401, false, `Access Denied / Unauthorized request`); 
 };
     
-module.exports = {
-    isAuthorized, isControl, isAdmin, login, register
-}
+// export {isAuthorized, isControl, isAdmin, register}

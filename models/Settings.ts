@@ -2,7 +2,7 @@
 API Settings TABLE
 *************************************************************************/
 
-module.exports = function(sequelize, Sequelize) {
+export default function(sequelize: { define: (arg0: string, arg1: { Name: { type: any; field: string; }; Value: { type: any; field: string; defaultValue: any; }; }, arg2: { freezeTableName: boolean; }) => any; }, Sequelize: { STRING: any; }) {
     
     const Settings = sequelize.define('settings', {
         Name: {
